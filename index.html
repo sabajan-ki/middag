@@ -1,0 +1,717 @@
+<!doctype html>
+<html lang="nb">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Middagsplanen</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Atkinson+Hyperlegible:wght@400;700&family=Bricolage+Grotesque:opsz,wght@12..96,600;12..96,800&display=swap">
+<style>
+:root{
+  --bg:#F3F5EF; --panel:#FFFFFF; --ink:#1D2A22; --muted:#5E6B62; --line:#D9DFD4; --soft:#E6ECE1;
+  --accent:#2F6B45; --accent-ink:#FFFFFF; --beet:#8E2A4A; --beet-bg:#F6E4EA;
+  --fisk:#2A6C8F; --veg:#4E8A2E; --kyll:#C08A1E; --kjott:#A2452F; --kos:#8E2A4A; --annet:#6B7280;
+  --warn:#9A5B00; --warn-bg:#FFF1D6;
+  --f-body:"Atkinson Hyperlegible",system-ui,-apple-system,sans-serif;
+  --f-disp:"Bricolage Grotesque","Avenir Next",system-ui,sans-serif;
+  color-scheme:light;
+}
+@media (prefers-color-scheme:dark){:root:not([data-theme="light"]){
+  --bg:#141A16; --panel:#1C241F; --ink:#E7EDE7; --muted:#9AA79E; --line:#2E3A32; --soft:#243029;
+  --accent:#6BBF86; --accent-ink:#0E1A12; --beet:#E48AA6; --beet-bg:#3A1E28; --warn:#F2C069; --warn-bg:#3A2C10;
+  color-scheme:dark;
+}}
+:root[data-theme="dark"]{
+  --bg:#141A16; --panel:#1C241F; --ink:#E7EDE7; --muted:#9AA79E; --line:#2E3A32; --soft:#243029;
+  --accent:#6BBF86; --accent-ink:#0E1A12; --beet:#E48AA6; --beet-bg:#3A1E28; --warn:#F2C069; --warn-bg:#3A2C10;
+  color-scheme:dark;
+}
+*{box-sizing:border-box}
+html,body{margin:0}
+body{background:var(--bg);color:var(--ink);font:16px/1.45 var(--f-body);padding-inline:16px;padding-block:0 60px}
+.wrap{max-width:720px;margin:0 auto}
+header{display:flex;align-items:baseline;justify-content:space-between;gap:10px;padding-block:18px 8px;flex-wrap:wrap}
+h1{font:800 2rem/1 var(--f-disp);margin:0;letter-spacing:-.01em}
+h1 span{color:var(--accent)}
+.sync{font-size:.8rem;color:var(--muted)}
+.sync b{color:var(--accent)}
+nav.tabs{display:flex;gap:4px;background:var(--soft);padding:4px;border-radius:12px;position:sticky;top:env(safe-area-inset-top,0px);z-index:5}
+nav.tabs button{flex:1;border:0;background:transparent;color:var(--ink);font:600 .98rem var(--f-disp);padding:9px 4px;border-radius:9px;cursor:pointer}
+nav.tabs button[aria-selected="true"]{background:var(--panel);color:var(--accent);box-shadow:0 1px 2px rgba(0,0,0,.08)}
+section.pane{padding-top:14px}
+h2{font:800 1.35rem var(--f-disp);margin:0}
+.bar{display:flex;align-items:center;justify-content:space-between;gap:8px;flex-wrap:wrap;margin-bottom:10px}
+.weeknav{display:flex;align-items:center;gap:6px}
+.btn{border:1px solid var(--line);background:var(--panel);color:var(--ink);border-radius:10px;padding:9px 14px;font:inherit;font-size:.95rem;cursor:pointer;min-height:42px}
+.btn.main{background:var(--accent);color:var(--accent-ink);border-color:var(--accent);font-weight:700}
+.btn.small{padding:6px 10px;min-height:34px;font-size:.88rem}
+.btn:disabled{opacity:.5;cursor:default}
+.icon{width:42px;padding:0;display:inline-flex;align-items:center;justify-content:center;font-size:1.1rem}
+button:focus-visible,input:focus-visible,select:focus-visible,textarea:focus-visible,summary:focus-visible{outline:2px solid var(--accent);outline-offset:2px}
+.days{display:grid;gap:8px}
+.day{background:var(--panel);border:1px solid var(--line);border-radius:14px;padding:10px 12px;display:grid;grid-template-columns:54px 1fr auto;gap:4px 12px;align-items:center}
+.day.today{border-color:var(--accent);box-shadow:0 0 0 1px var(--accent) inset}
+.dname{font:800 1rem var(--f-disp);line-height:1.1}
+.dname small{display:block;font:400 .78rem var(--f-body);color:var(--muted)}
+.dish{min-width:0}
+.dish b{display:block;font-size:1.02rem;line-height:1.25}
+.dish .meta{font-size:.8rem;color:var(--muted);display:flex;gap:6px;flex-wrap:wrap;align-items:center;margin-top:2px}
+.pill{display:inline-block;border-radius:999px;padding:1px 8px;font-size:.74rem;font-weight:700;color:#fff;background:var(--annet)}
+.pill.fisk{background:var(--fisk)} .pill.vegetar{background:var(--veg)} .pill.kylling{background:var(--kyll)} .pill.kjøtt{background:var(--kjott)} .pill.kos{background:var(--kos)}
+.dayact{display:flex;gap:4px}
+.dayact button{border:1px solid var(--line);background:var(--bg);color:var(--ink);border-radius:9px;width:38px;height:38px;cursor:pointer;font-size:1rem}
+.dayact button[aria-pressed="true"]{background:var(--accent);color:var(--accent-ink);border-color:var(--accent)}
+.rule{grid-column:1/-1;font-size:.78rem;color:var(--muted)}
+.empty{color:var(--muted);font-style:italic}
+.hint{font-size:.85rem;color:var(--muted);margin:10px 0 0;line-height:1.5}
+.card{background:var(--panel);border:1px solid var(--line);border-radius:14px;padding:12px 14px;margin-top:10px}
+.seg{display:inline-flex;border:1px solid var(--line);border-radius:10px;overflow:hidden}
+.seg button{border:0;background:var(--panel);color:var(--ink);padding:8px 12px;font:inherit;font-size:.92rem;cursor:pointer;min-height:40px}
+.seg button[aria-pressed="true"]{background:var(--accent);color:var(--accent-ink)}
+.dept{margin-top:14px}
+.dept h3{font:800 .95rem var(--f-disp);text-transform:uppercase;letter-spacing:.05em;color:var(--muted);margin:0 0 6px}
+.items{list-style:none;margin:0;padding:0;background:var(--panel);border:1px solid var(--line);border-radius:12px;overflow:hidden}
+.items li{display:flex;align-items:center;gap:12px;padding:9px 12px;border-bottom:1px solid var(--line)}
+.items li:last-child{border-bottom:0}
+.items input[type=checkbox]{width:22px;height:22px;accent-color:var(--accent);flex:0 0 auto}
+.items label{flex:1;display:flex;justify-content:space-between;gap:10px;cursor:pointer}
+.items .amt{color:var(--muted);font-variant-numeric:tabular-nums;white-space:nowrap}
+.items .for{display:block;font-size:.75rem;color:var(--muted)}
+.items li.done label{text-decoration:line-through;color:var(--muted)}
+.items .rm{border:0;background:none;color:var(--muted);cursor:pointer;font-size:1.1rem}
+.addrow{display:flex;gap:6px;margin-top:10px}
+input[type=text],input[type=search],input[type=number],input[type=url],select,textarea{width:100%;font:inherit;color:var(--ink);background:var(--bg);border:1px solid var(--line);border-radius:10px;padding:9px 12px;min-height:42px}
+textarea{min-height:120px;resize:vertical}
+label.lbl{display:block;font:700 .78rem var(--f-body);letter-spacing:.05em;text-transform:uppercase;color:var(--muted);margin:10px 0 4px}
+.chips{display:flex;flex-wrap:wrap;gap:6px}
+.chip{border:1px solid var(--line);background:var(--panel);color:var(--ink);border-radius:999px;padding:6px 12px;font:inherit;font-size:.88rem;cursor:pointer;min-height:36px}
+.chip[aria-pressed="true"]{background:var(--ink);color:var(--bg);border-color:var(--ink)}
+.bank{display:grid;gap:6px;margin-top:10px}
+.brow{background:var(--panel);border:1px solid var(--line);border-radius:12px;padding:9px 12px;display:grid;grid-template-columns:1fr auto;gap:2px 10px;align-items:center}
+.brow b{font-size:1rem}
+.brow .meta{font-size:.8rem;color:var(--muted);display:flex;gap:6px;flex-wrap:wrap;align-items:center}
+.brow .acts{display:flex;gap:4px;grid-row:1/3;grid-column:2}
+.brow .acts button{border:1px solid var(--line);background:var(--bg);border-radius:9px;min-width:38px;height:38px;cursor:pointer;color:var(--ink);font-size:1rem}
+.brow .acts button[aria-pressed="true"]{background:var(--beet-bg);border-color:var(--beet);color:var(--beet)}
+.brow.never{opacity:.55}
+details.ing{grid-column:1/-1;font-size:.85rem;color:var(--muted)}
+details.ing summary{cursor:pointer;width:max-content}
+.dialog{position:fixed;inset:0;background:rgba(0,0,0,.4);display:flex;align-items:flex-end;justify-content:center;z-index:30;padding:16px}
+.dialog .sheet{background:var(--panel);color:var(--ink);border-radius:16px;max-width:640px;width:100%;max-height:85vh;overflow:auto;padding:14px 16px;margin-bottom:env(safe-area-inset-bottom,0px)}
+.dialog .sheet h3{font:800 1.2rem var(--f-disp);margin:0 0 8px}
+.pick{display:grid;gap:4px;margin-top:8px}
+.pick button{text-align:left;border:1px solid var(--line);background:var(--bg);color:var(--ink);border-radius:10px;padding:8px 12px;cursor:pointer;font:inherit}
+.pick button small{color:var(--muted);margin-left:6px}
+.warnbox{background:var(--warn-bg);color:var(--warn);border-radius:10px;padding:9px 12px;font-size:.88rem;margin-top:10px}
+.okbox{background:var(--soft);border-radius:10px;padding:9px 12px;font-size:.88rem;margin-top:10px}
+.toast{position:fixed;left:50%;transform:translateX(-50%);bottom:calc(16px + env(safe-area-inset-bottom,0px));background:var(--ink);color:var(--bg);padding:10px 16px;border-radius:999px;font-size:.9rem;z-index:50}
+.grid2{display:grid;grid-template-columns:1fr 1fr;gap:8px}
+.rules{display:grid;grid-template-columns:auto 1fr;gap:6px 10px;align-items:center}
+.inspo{display:flex;gap:6px;overflow-x:auto;padding-bottom:4px}
+.inspo button{flex:0 0 auto;border:1px dashed var(--line);background:var(--panel);color:var(--ink);border-radius:12px;padding:8px 12px;cursor:pointer;font:inherit;text-align:left;max-width:220px}
+.inspo button small{display:block;color:var(--muted);font-size:.76rem}
+footer{margin-top:28px;font-size:.78rem;color:var(--muted);border-top:1px solid var(--line);padding-top:10px}
+@media (max-width:480px){ .day{grid-template-columns:46px 1fr} .dayact{grid-column:1/-1;justify-content:flex-end} }
+@media (prefers-reduced-motion:reduce){*{transition:none!important}}
+</style>
+</head>
+<body>
+<div class="wrap">
+<header>
+  <h1>Middags<span>planen</span></h1>
+  <div class="sync" id="syncState">Lagres på denne enheten</div>
+</header>
+<nav class="tabs" role="tablist">
+  <button role="tab" data-pane="uke" aria-selected="true">Uke</button>
+  <button role="tab" data-pane="liste" aria-selected="false">Handleliste</button>
+  <button role="tab" data-pane="bank" aria-selected="false">Middager</button>
+  <button role="tab" data-pane="oppsett" aria-selected="false">Oppsett</button>
+</nav>
+
+<!-- UKE -->
+<section class="pane" id="pane-uke">
+  <div class="bar">
+    <div class="weeknav">
+      <button class="btn icon" id="prevW" aria-label="Forrige uke">‹</button>
+      <h2 id="weekTitle">Uke</h2>
+      <button class="btn icon" id="nextW" aria-label="Neste uke">›</button>
+    </div>
+    <div style="display:flex;gap:6px;flex-wrap:wrap">
+      <button class="btn main" id="suggestW">Foreslå uka</button>
+      <button class="btn" id="suggestM" title="Fyll fire uker fra denne">4 uker</button>
+    </div>
+  </div>
+  <div class="days" id="days"></div>
+  <p class="hint">Trykk 🔒 for å beholde en rett når dere foreslår på nytt. ↻ bytter bare den dagen, og ✎ lar dere velge selv.</p>
+  <div class="card">
+    <label class="lbl" style="margin-top:0">Lenge siden sist</label>
+    <div class="inspo" id="inspo"></div>
+  </div>
+</section>
+
+<!-- HANDLELISTE -->
+<section class="pane" id="pane-liste" hidden>
+  <div class="bar">
+    <h2 id="listTitle">Handleliste</h2>
+    <div class="seg" role="group" aria-label="Omfang">
+      <button id="scopeW" aria-pressed="true">Denne uka</button>
+      <button id="scopeM" aria-pressed="false">Måneden</button>
+    </div>
+  </div>
+  <div id="listOut"></div>
+  <div class="addrow">
+    <input type="text" id="addItem" placeholder="Legg til vare (f.eks. melk, bleier, kaffe)">
+    <button class="btn main" id="addItemBtn">Legg til</button>
+  </div>
+  <div style="display:flex;gap:6px;flex-wrap:wrap;margin-top:10px">
+    <button class="btn small" id="copyList">Kopier lista</button>
+    <button class="btn small" id="clearDone">Fjern avkryssede</button>
+  </div>
+  <p class="hint">Mengdene er regnet for antall porsjoner under Oppsett. Varer de fleste har hjemme står under «Sjekk at dere har».</p>
+</section>
+
+<!-- MIDDAGER -->
+<section class="pane" id="pane-bank" hidden>
+  <div class="bar"><h2>Middager</h2><button class="btn main" id="newDish">Ny rett</button></div>
+  <input type="search" id="bankSearch" placeholder="Søk i middagene">
+  <div class="chips" id="bankFilter" style="margin-top:8px"></div>
+  <div class="bank" id="bankList"></div>
+</section>
+
+<!-- OPPSETT -->
+<section class="pane" id="pane-oppsett" hidden>
+  <h2>Oppsett</h2>
+  <div class="card">
+    <label class="lbl" style="margin-top:0" for="portions">Antall porsjoner</label>
+    <input type="number" id="portions" min="1" max="20" step="1">
+    <p class="hint">Oppskriftene er for 4 porsjoner og skaleres. To voksne og tre barn tilsvarer omtrent 5.</p>
+    <label class="lbl">Fast rytme i uka</label>
+    <div class="rules" id="rules"></div>
+    <label class="lbl">Hensyn</label>
+    <div class="chips">
+      <button class="chip" id="optQuick" aria-pressed="true">Maks 30 min på hverdager</button>
+      <button class="chip" id="optReuse" aria-pressed="true">Gjenbruk ferskvarer i uka</button>
+    </div>
+  </div>
+  <div class="card">
+    <label class="lbl" style="margin-top:0">Felles liste for dere to</label>
+    <div id="shareState"></div>
+    <label class="lbl" for="apiUrl">Adresse til Apps Script</label>
+    <input type="url" id="apiUrl" placeholder="https://script.google.com/macros/s/…/exec">
+    <label class="lbl" for="apiKey">Nøkkel</label>
+    <input type="text" id="apiKey" placeholder="Nøkkelen fra oppsett-funksjonen">
+    <div style="display:flex;gap:6px;flex-wrap:wrap;margin-top:10px">
+      <button class="btn main" id="connect">Koble til</button>
+      <button class="btn" id="shareLink">Kopier lenke til kona</button>
+      <button class="btn" id="disconnect">Koble fra</button>
+    </div>
+    <p class="hint">Lenken inneholder nøkkelen. Den som har lenken, kan se og endre planen, så send den bare til den som skal bruke den.</p>
+  </div>
+</section>
+
+<footer>Middagsbanken er laget som inspirasjon: vanlige norske hverdagsretter med hovedingredienser for 4 porsjoner. Salt, pepper og olje er ikke tatt med.</footer>
+</div>
+
+<script>
+"use strict";
+/* ---------- middagsbanken (4 porsjoner) ----------
+   [id, navn, kategori, minutter, merker, ingredienser]  merker: k = kos, h = helgerett */
+const BANK = [
+ ["f1","Laks i ovn med poteter og brokkoli","fisk",30,"","600 g laks; 1 kg potet; 1 stk brokkoli; 1 beger rømme"],
+ ["f2","Fiskegrateng med revne gulrøtter","fisk",60,"h","400 g torsk; 250 g makaroni; 5 dl melk; 3 stk egg; 150 g revet ost; 50 g smør; 4 ss hvetemel; 4 stk gulrot"],
+ ["f3","Fiskekaker med løk, poteter og gulrot","fisk",25,"","800 g fiskekaker; 2 stk løk; 1 kg potet; 4 stk gulrot"],
+ ["f4","Fiskeboller i hvit saus med poteter","fisk",25,"","2 boks fiskeboller; 1 kg potet; 4 stk gulrot; 3 dl melk; 3 ss hvetemel; 30 g smør"],
+ ["f5","Fiskepinner med potetmos og erter","fisk",20,"","2 pk fiskepinner; 1 kg potet; 2 dl melk; 30 g smør; 400 g erter"],
+ ["f6","Fiskesuppe","fisk",35,"","500 g torsk; 2 stk gulrot; 1 stk purre; 4 stk potet; 3 dl matfløte; 2 stk fiskebuljong"],
+ ["f7","Laksetaco","fisk",25,"k","600 g laks; 1 pk tortilla; 1 stk isbergsalat; 1 stk agurk; 1 boks mais; 1 beger rømme; 1 pose tacokrydder"],
+ ["f8","Ovnsbakt torsk med bacon, poteter og gulrot","fisk",35,"","600 g torsk; 1 pk bacon; 1 kg potet; 4 stk gulrot"],
+ ["f9","Fiskegryte med kokosmelk og ris","fisk",30,"","600 g sei; 1 boks kokosmelk; 1 stk paprika; 1 stk løk; 1 ss karri; 4 dl ris"],
+ ["f10","Pasta med laks og spinat","fisk",20,"","400 g laks; 400 g pasta; 3 dl matfløte; 250 g spinat; 1 stk sitron"],
+ ["f11","Fiskeburger","fisk",25,"k","6 stk fiskeburgere; 6 stk hamburgerbrød; 1 stk isbergsalat; 1 stk agurk; 1 beger rømme"],
+ ["f12","Teriyakilaks med ris og brokkoli","fisk",25,"","600 g laks; 4 dl ris; 1 stk brokkoli; 1 flaske teriyakisaus"],
+ ["k1","Kyllinggryte med karri og ris","kylling",30,"","600 g kyllingfilet; 1 boks kokosmelk; 1 stk paprika; 1 stk løk; 1 ss karri; 4 dl ris"],
+ ["k2","Kyllingwok med nudler","kylling",20,"","500 g kyllingfilet; 250 g nudler; 600 g wokgrønnsaker; 1 dl soyasaus"],
+ ["k3","Kyllinglår i ovn med poteter og gulrot","kylling",60,"h","1200 g kyllinglår; 1 kg potet; 4 stk gulrot; 2 stk rødløk"],
+ ["k4","Taco med kylling","kylling",25,"k","500 g kyllingfilet; 1 pose tacokrydder; 1 pk tortilla; 1 stk isbergsalat; 1 stk agurk; 1 boks mais; 1 beger rømme; 150 g revet ost"],
+ ["k5","Kyllingsuppe","kylling",35,"","400 g kyllingfilet; 3 stk gulrot; 1 stk purre; 4 stk potet; 2 stk kyllingbuljong"],
+ ["k6","Pasta med kylling og pesto","kylling",20,"","400 g kyllingfilet; 400 g pasta; 1 glass pesto; 250 g cherrytomat"],
+ ["k7","Quesadilla med kylling","kylling",20,"k","400 g kyllingfilet; 1 pk tortilla; 200 g revet ost; 1 stk paprika; 1 boks mais; 1 beger rømme"],
+ ["k8","Hel kylling i ovn med poteter og brokkoli","kylling",90,"h","1 stk hel kylling; 1 kg potet; 1 stk brokkoli; 4 stk gulrot"],
+ ["k9","Butter chicken med ris","kylling",30,"","600 g kyllingfilet; 1 boks hakkede tomater; 2 dl matfløte; 1 ss garam masala; 1 stk løk; 4 dl ris"],
+ ["k10","Kyllingburger","kylling",25,"k","500 g kyllingfilet; 6 stk hamburgerbrød; 1 stk isbergsalat; 2 stk tomat; 6 stk ostskiver"],
+ ["m1","Taco","kjøtt",25,"k","400 g kjøttdeig; 1 pose tacokrydder; 1 pk tortilla; 1 stk isbergsalat; 1 stk agurk; 2 stk tomat; 1 boks mais; 1 beger rømme; 150 g revet ost"],
+ ["m2","Spaghetti bolognese","kjøtt",30,"","400 g kjøttdeig; 1 boks hakkede tomater; 1 stk løk; 2 stk gulrot; 400 g spaghetti; 100 g revet ost"],
+ ["m3","Lasagne","kjøtt",70,"h","500 g kjøttdeig; 2 boks hakkede tomater; 1 stk løk; 1 pk lasagneplater; 6 dl melk; 4 ss hvetemel; 50 g smør; 150 g revet ost"],
+ ["m4","Kjøttkaker i brun saus med poteter og erter","kjøtt",50,"","600 g karbonadedeig; 1 stk løk; 1 stk egg; 2 pose brun saus; 1 kg potet; 400 g erter; 1 glass tyttebær"],
+ ["m5","Hamburger","kjøtt",25,"k","500 g karbonadedeig; 6 stk hamburgerbrød; 1 stk isbergsalat; 2 stk tomat; 1 stk agurk; 6 stk ostskiver"],
+ ["m6","Grillpølser med lomper","kjøtt",15,"k","1 pk grillpølser; 1 pk lomper; 1 stk agurk"],
+ ["m7","Hjemmelaget pizza","kjøtt",60,"kh","600 g hvetemel; 1 pk gjær; 1 boks hakkede tomater; 300 g revet ost; 1 pk skinke; 1 stk paprika"],
+ ["m8","Kjøttsuppe","kjøtt",120,"h","800 g suppekjøtt; 0.5 stk kålrot; 4 stk gulrot; 6 stk potet; 1 stk purre"],
+ ["m9","Fårikål","kjøtt",150,"h","1500 g fårikålkjøtt; 1 stk hodekål; 1 ss pepper hel; 1 kg potet"],
+ ["m10","Svinekoteletter med poteter og brokkoli","kjøtt",30,"","6 stk svinekoteletter; 1 kg potet; 1 stk brokkoli; 1 pose brun saus"],
+ ["m11","Pasta carbonara","kjøtt",20,"","250 g bacon; 400 g spaghetti; 3 stk egg; 100 g parmesan"],
+ ["m12","Chili con carne med ris","kjøtt",40,"","400 g kjøttdeig; 1 boks kidneybønner; 2 boks hakkede tomater; 1 stk løk; 1 stk paprika; 4 dl ris; 1 ts paprikapulver"],
+ ["m13","Pølsestroganoff med ris","kjøtt",20,"","600 g wienerpølser; 1 stk løk; 2 ss tomatpuré; 3 dl matfløte; 4 dl ris"],
+ ["m14","Kebab i pita","kjøtt",20,"k","500 g kebabkjøtt; 8 stk pitabrød; 1 stk isbergsalat; 1 stk agurk; 2 stk tomat; 1 flaske kebabdressing"],
+ ["m15","Lapskaus med flatbrød","kjøtt",60,"h","500 g lapskauskjøtt; 1 kg potet; 3 stk gulrot; 0.5 stk kålrot; 1 stk løk; 1 pk flatbrød"],
+ ["m16","Kjøttboller i tomatsaus med pasta","kjøtt",25,"","600 g kjøttboller; 2 boks hakkede tomater; 400 g pasta; 100 g revet ost"],
+ ["m17","Pytt i panne med speilegg","kjøtt",20,"","1200 g pytt i panne; 6 stk egg; 1 glass rødbeter"],
+ ["m18","Karbonader med løk og poteter","kjøtt",30,"","500 g karbonadedeig; 3 stk løk; 1 kg potet; 400 g erter"],
+ ["m19","Svinefilet med ovnsgrønnsaker","kjøtt",50,"h","700 g svinefilet; 800 g søtpotet; 1 stk squash; 1 stk paprika; 2 stk rødløk"],
+ ["v1","Tomatsuppe med makaroni og egg","vegetar",20,"","2 boks hakkede tomater; 2 stk grønnsaksbuljong; 150 g makaroni; 4 stk egg; 1 dl matfløte"],
+ ["v2","Linsesuppe","vegetar",30,"","3 dl røde linser; 3 stk gulrot; 1 stk løk; 1 boks hakkede tomater; 1 boks kokosmelk; 2 stk grønnsaksbuljong"],
+ ["v3","Bønnetaco","vegetar",25,"k","2 boks kidneybønner; 1 pose tacokrydder; 1 pk tortilla; 1 stk isbergsalat; 1 boks mais; 1 beger rømme; 150 g revet ost"],
+ ["v4","Pannekaker med syltetøy","vegetar",30,"","4 dl hvetemel; 6 dl melk; 4 stk egg; 1 glass syltetøy"],
+ ["v5","Vegetarlasagne","vegetar",70,"h","2 boks hakkede tomater; 1 stk squash; 1 stk paprika; 250 g spinat; 1 pk lasagneplater; 6 dl melk; 4 ss hvetemel; 50 g smør; 150 g revet ost"],
+ ["v6","Omelett med grønnsaker og brød","vegetar",15,"","10 stk egg; 1 stk paprika; 1 stk løk; 100 g revet ost; 1 stk brød"],
+ ["v7","Pasta med tomatsaus og mozzarella","vegetar",20,"","400 g pasta; 2 boks hakkede tomater; 1 stk hvitløk; 1 stk mozzarella"],
+ ["v8","Kikertgryte med ris","vegetar",30,"","2 boks kikerter; 1 boks kokosmelk; 1 ss karri; 250 g spinat; 1 stk løk; 4 dl ris"],
+ ["v9","Brokkolisuppe med ost og brød","vegetar",25,"","2 stk brokkoli; 3 stk potet; 2 stk grønnsaksbuljong; 2 dl matfløte; 100 g revet ost; 1 stk brød"],
+ ["v10","Falafel i pita","vegetar",25,"","1 pk falafel; 8 stk pitabrød; 1 stk isbergsalat; 1 stk agurk; 2 stk tomat; 1 beger yoghurt naturell"],
+ ["v11","Makaroni og ost","vegetar",25,"","400 g makaroni; 5 dl melk; 3 ss hvetemel; 30 g smør; 200 g revet ost; 1 stk brokkoli"],
+ ["v12","Risengrynsgrøt","vegetar",60,"h","3 dl grøtris; 15 dl melk; 50 g smør; 1 ss sukker; 1 ts kanel"],
+ ["v13","Grønnsakswok med nudler og egg","vegetar",20,"","250 g nudler; 600 g wokgrønnsaker; 4 stk egg; 1 dl soyasaus"],
+];
+const SPECIAL = [
+ {id:"rester", n:"Restemiddag", k:"annet", t:10, kos:false, helg:false, ing:[], special:true},
+ {id:"ute", n:"Spiser ute / takeaway", k:"annet", t:0, kos:true, helg:false, ing:[], special:true},
+];
+const CATS = [["fisk","Fisk"],["kylling","Kylling"],["kjøtt","Kjøtt"],["vegetar","Vegetar"],["annet","Annet"]];
+
+/* ---------- varekatalog: avdeling og hvordan varen kan kjøpes ved storhandel ---------- */
+const DEPTS = ["Frukt og grønt","Brød","Kjøtt og kylling","Fisk","Meieri og egg","Frysedisken","Tørrvarer og hermetikk","Krydder og sauser","Annet"];
+const CATALOG = {
+ "Frukt og grønt": "løk rødløk hvitløk gulrot potet brokkoli paprika agurk tomat cherrytomat isbergsalat purre sitron blomkål squash kålrot hodekål søtpotet",
+ "Brød": "tortilla hamburgerbrød lomper pitabrød brød flatbrød",
+ "Kjøtt og kylling": "kjøttdeig karbonadedeig kyllingfilet kyllinglår hel_kylling svinekoteletter grillpølser wienerpølser bacon kjøttboller suppekjøtt fårikålkjøtt lapskauskjøtt svinefilet skinke",
+ "Fisk": "laks torsk sei fiskekaker fiskeburgere",
+ "Meieri og egg": "melk rømme matfløte smør egg revet_ost ostskiver mozzarella parmesan yoghurt_naturell",
+ "Frysedisken": "erter spinat wokgrønnsaker fiskepinner pytt_i_panne falafel kebabkjøtt",
+ "Tørrvarer og hermetikk": "pasta spaghetti makaroni ris nudler lasagneplater hakkede_tomater tomatpuré kokosmelk kikerter kidneybønner røde_linser mais hvetemel gjær grøtris sukker fiskeboller rødbeter",
+ "Krydder og sauser": "tacokrydder fiskebuljong kyllingbuljong grønnsaksbuljong soyasaus teriyakisaus pesto brun_saus karri garam_masala paprikapulver pepper_hel kanel tyttebær syltetøy kebabdressing",
+};
+const DEPT_OF = {}; Object.entries(CATALOG).forEach(([d, s]) => s.split(" ").forEach(n => DEPT_OF[n.replace(/_/g, " ")] = d));
+// Holdbart: kan kjøpes for hele måneden (tørrvarer, frys, lagergrønt). Kjøtt og fisk kan fryses.
+const LAGER = new Set("løk rødløk hvitløk gulrot potet kålrot hodekål søtpotet".split(" "));
+const BASIS = new Set(["smør","hvetemel","sukker","kanel","paprikapulver","pepper hel","karri","garam masala","soyasaus","fiskebuljong","kyllingbuljong","grønnsaksbuljong"]);
+function storage(name){
+  const d = DEPT_OF[name] || "Annet";
+  if (d === "Tørrvarer og hermetikk" || d === "Krydder og sauser" || d === "Frysedisken" || LAGER.has(name)) return "holdbar";
+  if (d === "Kjøtt og kylling" || d === "Fisk") return "frys";
+  return "fersk";
+}
+
+/* ---------- hjelpere ---------- */
+const $ = s => document.querySelector(s);
+const esc = s => String(s ?? "").replace(/[&<>"']/g, c => ({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]));
+const clone = o => JSON.parse(JSON.stringify(o));
+const DAYS = ["Mandag","Tirsdag","Onsdag","Torsdag","Fredag","Lørdag","Søndag"];
+const pad = n => String(n).padStart(2, "0");
+const ymd = d => `${d.getFullYear()}-${pad(d.getMonth()+1)}-${pad(d.getDate())}`;
+const dm = d => `${pad(d.getDate())}.${pad(d.getMonth()+1)}`;
+function mondayOf(d){ const x = new Date(d); x.setHours(12,0,0,0); x.setDate(x.getDate() - ((x.getDay() + 6) % 7)); return x; }
+function addDays(d, n){ const x = new Date(d); x.setDate(x.getDate() + n); return x; }
+function weekNo(d){ const t = new Date(Date.UTC(d.getFullYear(), d.getMonth(), d.getDate())); const day = t.getUTCDay() || 7; t.setUTCDate(t.getUTCDate() + 4 - day); const y = new Date(Date.UTC(t.getUTCFullYear(),0,1)); return Math.ceil(((t - y) / 864e5 + 1) / 7); }
+function toast(msg){ const t = document.createElement("div"); t.className = "toast"; t.setAttribute("role","status"); t.textContent = msg; document.body.appendChild(t); setTimeout(() => t.remove(), 2200); }
+async function copyText(text){ try { await navigator.clipboard.writeText(text); toast("Kopiert"); } catch { window.prompt("Kopier teksten:", text); } }
+const local = { get(k, d){ try { const v = localStorage.getItem("middag:" + k); return v ? JSON.parse(v) : d; } catch { return d; } }, set(k, v){ try { localStorage.setItem("middag:" + k, JSON.stringify(v)); } catch {} } };
+
+/* ingredienslinje: «600 g laks» -> {q, u, n}; kg/l gjøres om til g/dl så like varer kan legges sammen */
+function parseIng(line){
+  const m = String(line).trim().match(/^([\d.,]+)\s*(kg|g|l|dl|stk|pk|boks|beger|glass|pose|flaske|ss|ts)?\s+(.+)$/i);
+  if (!m) return {q:null, u:"", n:String(line).trim().toLowerCase()};
+  let q = parseFloat(m[1].replace(",", ".")), u = (m[2] || "stk").toLowerCase(); const n = m[3].trim().toLowerCase();
+  if (u === "kg"){ q *= 1000; u = "g"; } if (u === "l"){ q *= 10; u = "dl"; }
+  return {q, u, n};
+}
+function fmtQty(q, u){
+  if (q == null) return "";
+  if (u === "g"){ if (q >= 1000) return `${(Math.round(q / 100) / 10).toString().replace(".", ",")} kg`; return `${Math.round(q / 50) * 50 || Math.round(q)} g`; }
+  if (u === "dl"){ if (q >= 10) return `${(Math.round(q / 5) / 2).toString().replace(".", ",")} l`; return `${(Math.round(q * 2) / 2).toString().replace(".", ",")} dl`; }
+  if (["pk","boks","beger","glass","pose","flaske"].includes(u)) return `${Math.ceil(q - 0.15)} ${u}`;
+  if (u === "stk") return q < 0.9 ? `${(Math.round(q * 2) / 2 || 0.5).toString().replace(".", ",")} stk` : `${Math.ceil(q - 0.15)} stk`;
+  return `${Math.round(q * 2) / 2} ${u}`.replace(".", ",");
+}
+
+/* ---------- tilstand (felles for begge) ---------- */
+const DEFAULT = { v:0, settings:{portions:5, rules:["fisk","valgfritt","vegetar","fisk","kos","helg","helg"], quick:true, reuse:true},
+  weeks:{}, custom:[], fav:[], never:[], lists:{} };
+let S = Object.assign(clone(DEFAULT), local.get("state", {}));
+S.settings = Object.assign(clone(DEFAULT.settings), S.settings || {});
+let viewMonday = mondayOf(new Date());
+let scope = "week";
+
+function allDishes(){
+  const base = BANK.map(([id, n, k, t, f, ing]) => ({id, n, k, t, kos:f.includes("k"), helg:f.includes("h"), ing:ing.split(";").map(parseIng)}));
+  const own = (S.custom || []).map(c => ({...c, own:true, ing:(c.lines || []).map(parseIng)}));
+  return base.concat(own, SPECIAL);
+}
+let DISHES = allDishes();
+const dishById = id => DISHES.find(d => d.id === id);
+function weekKey(mon){ return ymd(mon); }
+function getWeek(mon){ const k = weekKey(mon); if (!S.weeks[k]) S.weeks[k] = {days: Array.from({length:7}, () => ({id:null, lock:false}))}; return S.weeks[k]; }
+function lastUsed(id){ let last = null; Object.entries(S.weeks).forEach(([k, w]) => w.days.forEach((d, i) => { if (d.id === id){ const t = addDays(new Date(k + "T12:00"), i).getTime(); if (!last || t > last) last = t; } })); return last; }
+
+/* ---------- forslag ---------- */
+const RULES = [["valgfritt","Valgfritt"],["fisk","Fisk"],["vegetar","Vegetar"],["kylling","Kylling"],["kjøtt","Kjøtt"],["kos","Kos (taco, pizza, burger)"],["helg","Helgerett"],["rester","Rester"],["ute","Spiser ute"]];
+function candidates(rule, dayIdx, mon, usedNow){
+  const weekday = dayIdx < 4;
+  const recentCut = addDays(mon, -21).getTime();
+  return DISHES.filter(d => {
+    if (d.special) return false;
+    if (S.never.includes(d.id) || usedNow.has(d.id)) return false;
+    const lu = lastUsed(d.id); if (lu && lu >= recentCut && lu < mon.getTime()) return false;
+    if (S.settings.quick && weekday && d.t > 30) return false;
+    if (rule === "fisk") return d.k === "fisk";
+    if (rule === "vegetar") return d.k === "vegetar";
+    if (rule === "kylling") return d.k === "kylling";
+    if (rule === "kjøtt") return d.k === "kjøtt";
+    if (rule === "kos") return d.kos;
+    if (rule === "helg") return true;
+    return d.k === "kylling" || d.k === "kjøtt"; // valgfritt: fisk og vegetar har egne dager
+  });
+}
+function score(d, rule, chosen){
+  let s = Math.random() * 3;
+  if (S.fav.includes(d.id)) s += 2;
+  const lu = lastUsed(d.id); if (!lu) s += 0.8; else s += Math.min(2, (Date.now() - lu) / (60 * 864e5));
+  if (rule === "helg" && d.helg) s += 2.5;
+  if (S.settings.reuse){
+    const fresh = new Set(chosen.flatMap(c => c.ing.filter(i => storage(i.n) === "fersk").map(i => i.n)));
+    s += d.ing.filter(i => fresh.has(i.n)).length * 0.8;
+  }
+  // unngå samme kategori to dager på rad
+  if (chosen.length && chosen[chosen.length - 1].k === d.k) s -= 1.5;
+  // kvote i uka: fisk og vegetar har faste dager, så helgen får heller kjøtt eller kylling
+  const quota = {fisk: S.settings.rules.filter(r => r === "fisk").length || 2, vegetar: S.settings.rules.filter(r => r === "vegetar").length || 1};
+  if (rule === "helg" && quota[d.k] !== undefined && chosen.filter(c => c.k === d.k).length >= quota[d.k]) s -= 4;
+  return s;
+}
+function suggestWeek(mon, onlyDay = null){
+  const w = getWeek(mon);
+  const chosen = [];
+  w.days.forEach((d, i) => { if ((d.lock || (onlyDay !== null && i !== onlyDay)) && d.id){ const x = dishById(d.id); if (x) chosen.push(x); } });
+  const used = new Set(chosen.map(c => c.id));
+  const order = [0,1,2,3,4,5,6].sort((a, b) => (S.settings.rules[a] === "helg") - (S.settings.rules[b] === "helg"));
+  order.forEach(i => {
+    const d = w.days[i];
+    if (d.lock) return;
+    if (onlyDay !== null && i !== onlyDay) return;
+    const rule = S.settings.rules[i] || "valgfritt";
+    if (rule === "rester" || rule === "ute"){ d.id = rule; return; }
+    let c = candidates(rule, i, mon, used);
+    if (onlyDay !== null) c = c.filter(x => x.id !== d.id);
+    if (!c.length) c = DISHES.filter(x => !x.special && !used.has(x.id) && !S.never.includes(x.id));
+    const pick = c.map(x => [x, score(x, rule, chosen)]).sort((a, b) => b[1] - a[1])[0][0];
+    d.id = pick.id; used.add(pick.id); chosen.push(pick);
+  });
+}
+
+/* ---------- visning: uke ---------- */
+function renderWeek(){
+  const mon = viewMonday, w = getWeek(mon), today = ymd(new Date());
+  $("#weekTitle").textContent = `Uke ${weekNo(mon)} · ${dm(mon)}–${dm(addDays(mon, 6))}`;
+  $("#days").innerHTML = w.days.map((d, i) => {
+    const date = addDays(mon, i), x = d.id ? dishById(d.id) : null, rule = S.settings.rules[i];
+    const ruleName = (RULES.find(r => r[0] === rule) || [0,"Valgfritt"])[1];
+    return `<div class="day${ymd(date) === today ? " today" : ""}">
+      <div class="dname">${DAYS[i].slice(0,3)}<small>${dm(date)}</small></div>
+      <div class="dish">${x ? `<b>${esc(x.n)}</b><div class="meta"><span class="pill ${x.kos && x.k !== "annet" ? "kos" : x.k}">${x.kos && x.k !== "annet" ? "kos" : esc(x.k)}</span>${x.t ? `${x.t} min` : ""}${S.fav.includes(x.id) ? " · ★ favoritt" : ""}</div>` : `<span class="empty">Ingen middag valgt (${esc(ruleName.toLowerCase())})</span>`}</div>
+      <div class="dayact">
+        <button data-lock="${i}" aria-pressed="${d.lock}" aria-label="Behold ${DAYS[i]}" title="Behold">🔒</button>
+        <button data-reroll="${i}" aria-label="Nytt forslag for ${DAYS[i]}" title="Nytt forslag">↻</button>
+        <button data-pickday="${i}" aria-label="Velg rett for ${DAYS[i]}" title="Velg selv">✎</button>
+      </div>
+    </div>`;
+  }).join("");
+  // lenge siden sist / aldri prøvd
+  const inspo = DISHES.filter(d => !d.special && !S.never.includes(d.id) && !w.days.some(x => x.id === d.id))
+    .map(d => ({d, lu:lastUsed(d.id)})).sort((a, b) => (a.lu || 0) - (b.lu || 0) || (S.fav.includes(b.d.id) - S.fav.includes(a.d.id))).slice(0, 8);
+  $("#inspo").innerHTML = inspo.map(({d, lu}) => `<button data-inspo="${d.id}"><b>${esc(d.n)}</b><small>${lu ? "Sist " + dm(new Date(lu)) : "Ikke laget ennå"} · ${d.t} min</small></button>`).join("");
+}
+$("#days").addEventListener("click", e => {
+  const b = e.target.closest("button"); if (!b) return;
+  const w = getWeek(viewMonday);
+  if (b.dataset.lock){ const d = w.days[+b.dataset.lock]; d.lock = !d.lock; save(); renderWeek(); }
+  if (b.dataset.reroll){ const i = +b.dataset.reroll; w.days[i].lock = false; suggestWeek(viewMonday, i); save(); renderWeek(); }
+  if (b.dataset.pickday){ openPicker(+b.dataset.pickday); }
+});
+$("#inspo").addEventListener("click", e => { const b = e.target.closest("[data-inspo]"); if (b) openPicker(null, b.dataset.inspo); });
+$("#suggestW").onclick = () => { suggestWeek(viewMonday); save(); renderWeek(); toast("Ny uke foreslått"); };
+$("#suggestM").onclick = () => { for (let k = 0; k < 4; k++) suggestWeek(addDays(viewMonday, 7 * k)); save(); renderWeek(); toast("Fire uker foreslått fra denne"); };
+$("#prevW").onclick = () => { viewMonday = addDays(viewMonday, -7); renderAll(); };
+$("#nextW").onclick = () => { viewMonday = addDays(viewMonday, 7); renderAll(); };
+
+/* velg rett for en dag, eller legg en rett inn på en dag */
+function openPicker(dayIdx, dishId = null){
+  const box = document.createElement("div"); box.className = "dialog";
+  const w = getWeek(viewMonday);
+  if (dishId){
+    const d = dishById(dishId);
+    box.innerHTML = `<div class="sheet" role="dialog" aria-label="Legg inn ${esc(d.n)}"><h3>${esc(d.n)}</h3><p class="hint" style="margin-top:0">Hvilken dag?</p>
+      <div class="pick">${w.days.map((x, i) => `<button data-day="${i}">${DAYS[i]} ${dm(addDays(viewMonday, i))}<small>${x.id ? esc(dishById(x.id)?.n || "") : "ledig"}</small></button>`).join("")}</div>
+      <button class="btn" style="margin-top:10px" data-close>Avbryt</button></div>`;
+    box.addEventListener("click", e => {
+      const b = e.target.closest("button");
+      if (e.target === box || b?.dataset.close !== undefined){ box.remove(); return; }
+      if (b?.dataset.day){ w.days[+b.dataset.day] = {id:dishId, lock:true}; save(); renderWeek(); box.remove(); }
+    });
+  } else {
+    box.innerHTML = `<div class="sheet" role="dialog" aria-label="Velg middag"><h3>${DAYS[dayIdx]} ${dm(addDays(viewMonday, dayIdx))}</h3>
+      <input type="search" id="pickQ" placeholder="Søk">
+      <div class="pick" id="pickList"></div>
+      <button class="btn" style="margin-top:10px" data-close>Avbryt</button></div>`;
+    const draw = () => {
+      const q = box.querySelector("#pickQ").value.trim().toLowerCase();
+      box.querySelector("#pickList").innerHTML = DISHES.filter(d => !q || d.n.toLowerCase().includes(q) || d.ing.some(i => i.n.includes(q)))
+        .sort((a, b) => (S.fav.includes(b.id) - S.fav.includes(a.id)) || a.n.localeCompare(b.n, "nb"))
+        .map(d => `<button data-dish="${d.id}">${S.fav.includes(d.id) ? "★ " : ""}${esc(d.n)}<small>${esc(d.k)}${d.t ? " · " + d.t + " min" : ""}</small></button>`).join("");
+    };
+    box.addEventListener("input", draw);
+    box.addEventListener("click", e => {
+      const b = e.target.closest("button");
+      if (e.target === box || b?.dataset.close !== undefined){ box.remove(); return; }
+      if (b?.dataset.dish){ w.days[dayIdx] = {id:b.dataset.dish, lock:true}; save(); renderWeek(); box.remove(); }
+    });
+    setTimeout(draw);
+  }
+  document.body.appendChild(box);
+}
+
+/* ---------- handleliste ---------- */
+function weeksInScope(){ return scope === "week" ? [viewMonday] : [0,1,2,3].map(k => addDays(viewMonday, 7 * k)); }
+function scopeKey(){ return (scope === "week" ? "w:" : "m:") + weekKey(viewMonday); }
+function buildList(){
+  const f = (S.settings.portions || 4) / 4;
+  const map = new Map();
+  weeksInScope().forEach((mon, wi) => {
+    const w = S.weeks[weekKey(mon)]; if (!w) return;
+    w.days.forEach((d, di) => {
+      const x = d.id && dishById(d.id); if (!x) return;
+      x.ing.forEach(i => {
+        const key = i.n + "|" + i.u;
+        if (!map.has(key)) map.set(key, {key, n:i.n, u:i.u, q:0, dept:DEPT_OF[i.n] || "Annet", st:storage(i.n), weeks:new Map(), dishes:new Set()});
+        const it = map.get(key);
+        if (i.q != null){ it.q += i.q * f; it.weeks.set(wi, (it.weeks.get(wi) || 0) + i.q * f); }
+        it.dishes.add(DAYS[di].slice(0,3).toLowerCase() + (scope === "month" ? " u" + weekNo(mon) : ""));
+      });
+    });
+  });
+  // samme vare i ulike enheter (f.eks. potet i kg og i stk) blir én linje
+  const byName = new Map();
+  [...map.values()].forEach(it => {
+    if (!byName.has(it.n)) byName.set(it.n, {key:it.n, n:it.n, dept:it.dept, st:it.st, parts:[], weeks:new Map(), dishes:new Set()});
+    const m = byName.get(it.n);
+    m.parts.push(it); it.dishes.forEach(x => m.dishes.add(x));
+    it.weeks.forEach((q, wi) => { if (!m.weeks.has(wi)) m.weeks.set(wi, []); m.weeks.get(wi).push([q, it.u]); });
+  });
+  return [...byName.values()];
+}
+const qtyAll = it => it.parts.filter(p => p.q).map(p => fmtQty(p.q, p.u)).join(" + ");
+const qtyWeek = (it, wi) => (it.weeks.get(wi) || []).map(([q, u]) => fmtQty(q, u)).join(" + ");
+function renderList(){
+  const sk = scopeKey(); const L = S.lists[sk] || (S.lists[sk] = {checked:{}, extra:[]});
+  $("#listTitle").textContent = scope === "week" ? `Handleliste uke ${weekNo(viewMonday)}` : `Månedshandel uke ${weekNo(viewMonday)}–${weekNo(addDays(viewMonday, 21))}`;
+  const items = buildList();
+  const row = (it, qty, keySuffix = "") => {
+    const k = it.key + keySuffix, done = !!L.checked[k];
+    return `<li class="${done ? "done" : ""}"><input type="checkbox" id="c-${esc(k)}" data-check="${esc(k)}" ${done ? "checked" : ""}>
+      <label for="c-${esc(k)}"><span>${esc(it.n)}<span class="for">${esc([...it.dishes].join(", "))}</span></span><span class="amt">${esc(qty)}</span></label></li>`;
+  };
+  const byDept = arr => DEPTS.map(d => [d, arr.filter(x => x[0].dept === d)]).filter(([, a]) => a.length);
+  let html = "";
+  const regular = items.filter(i => !BASIS.has(i.n)), basis = items.filter(i => BASIS.has(i.n));
+  if (!items.length && !L.extra.length) html = `<div class="card">Ingen middager planlagt ${scope === "week" ? "denne uka" : "de fire ukene"} ennå. Gå til Uke og trykk «Foreslå uka».</div>`;
+  if (scope === "week"){
+    byDept(regular.map(i => [i, qtyAll(i)])).forEach(([d, arr]) => { html += `<div class="dept"><h3>${esc(d)}</h3><ul class="items">${arr.map(([i, q]) => row(i, q)).join("")}</ul></div>`; });
+  } else {
+    const now = regular.filter(i => i.st !== "fersk"), fresh = regular.filter(i => i.st === "fersk");
+    html += `<div class="dept"><h3 style="color:var(--accent)">Kjøp nå: holdbart og til fryseren</h3></div>`;
+    byDept(now.map(i => [i, qtyAll(i) + (i.st === "frys" ? " · frys" : "")])).forEach(([d, arr]) => { html += `<div class="dept"><h3>${esc(d)}</h3><ul class="items">${arr.map(([i, q]) => row(i, q)).join("")}</ul></div>`; });
+    [0,1,2,3].forEach(wi => {
+      const wk = fresh.filter(i => i.weeks.has(wi)); if (!wk.length) return;
+      html += `<div class="dept"><h3 style="color:var(--accent)">Ferskvarer uke ${weekNo(addDays(viewMonday, 7 * wi))}</h3><ul class="items">${wk.map(i => row(i, qtyWeek(i, wi), "|u" + wi)).join("")}</ul></div>`;
+    });
+  }
+  if (L.extra.length) html += `<div class="dept"><h3>Egne varer</h3><ul class="items">${L.extra.map((x, ix) => `<li class="${x.done ? "done" : ""}"><input type="checkbox" id="e-${ix}" data-extra="${ix}" ${x.done ? "checked" : ""}><label for="e-${ix}"><span>${esc(x.t)}</span></label><button class="rm" data-rmextra="${ix}" aria-label="Fjern ${esc(x.t)}">×</button></li>`).join("")}</ul></div>`;
+  if (basis.length) html += `<details class="dept"><summary><b>Sjekk at dere har</b> (${basis.length})</summary><ul class="items" style="margin-top:6px">${basis.map(i => row(i, qtyAll(i))).join("")}</ul></details>`;
+  $("#listOut").innerHTML = html;
+}
+$("#listOut").addEventListener("change", e => {
+  const L = S.lists[scopeKey()];
+  if (e.target.dataset.check){ const k = e.target.dataset.check; if (e.target.checked) L.checked[k] = 1; else delete L.checked[k]; }
+  if (e.target.dataset.extra){ L.extra[+e.target.dataset.extra].done = e.target.checked; }
+  e.target.closest("li").classList.toggle("done", e.target.checked);
+  save();
+});
+$("#listOut").addEventListener("click", e => { const b = e.target.closest("[data-rmextra]"); if (!b) return; S.lists[scopeKey()].extra.splice(+b.dataset.rmextra, 1); save(); renderList(); });
+function addExtra(){ const v = $("#addItem").value.trim(); if (!v) return; const L = S.lists[scopeKey()] || (S.lists[scopeKey()] = {checked:{}, extra:[]}); L.extra.push({t:v, done:false}); $("#addItem").value = ""; save(); renderList(); }
+$("#addItemBtn").onclick = addExtra;
+$("#addItem").addEventListener("keydown", e => { if (e.key === "Enter") addExtra(); });
+$("#clearDone").onclick = () => { const L = S.lists[scopeKey()]; if (!L) return; L.extra = L.extra.filter(x => !x.done); save(); renderList(); };
+$("#copyList").onclick = () => {
+  const L = S.lists[scopeKey()] || {checked:{}, extra:[]};
+  const items = buildList().filter(i => !BASIS.has(i.n) && !L.checked[i.key]);
+  const lines = DEPTS.flatMap(d => { const a = items.filter(i => i.dept === d); return a.length ? [d.toUpperCase(), ...a.map(i => `- ${i.n} ${qtyAll(i)}`), ""] : []; });
+  L.extra.filter(x => !x.done).forEach(x => lines.push(`- ${x.t}`));
+  copyText(`${$("#listTitle").textContent}\n\n${lines.join("\n")}`.trim());
+};
+$("#scopeW").onclick = () => { scope = "week"; $("#scopeW").setAttribute("aria-pressed","true"); $("#scopeM").setAttribute("aria-pressed","false"); renderList(); };
+$("#scopeM").onclick = () => { scope = "month"; $("#scopeM").setAttribute("aria-pressed","true"); $("#scopeW").setAttribute("aria-pressed","false"); renderList(); };
+
+/* ---------- middagsbanken ---------- */
+let bankCat = "alle";
+function renderBank(){
+  $("#bankFilter").innerHTML = [["alle","Alle"],["fav","★ Favoritter"],...CATS,["egne","Egne"]].map(([k, n]) => `<button class="chip" data-cat="${k}" aria-pressed="${bankCat === k}">${esc(n)}</button>`).join("");
+  const q = $("#bankSearch").value.trim().toLowerCase();
+  const list = DISHES.filter(d => !d.special)
+    .filter(d => bankCat === "alle" || (bankCat === "fav" ? S.fav.includes(d.id) : bankCat === "egne" ? d.own : d.k === bankCat))
+    .filter(d => !q || d.n.toLowerCase().includes(q) || d.ing.some(i => i.n.includes(q)))
+    .sort((a, b) => a.n.localeCompare(b.n, "nb"));
+  $("#bankList").innerHTML = list.map(d => {
+    const lu = lastUsed(d.id), never = S.never.includes(d.id);
+    return `<div class="brow${never ? " never" : ""}">
+      <b>${esc(d.n)}</b>
+      <div class="acts">
+        <button data-fav="${d.id}" aria-pressed="${S.fav.includes(d.id)}" aria-label="Favoritt" title="Favoritt">★</button>
+        <button data-never="${d.id}" aria-pressed="${never}" aria-label="Ikke foreslå" title="Ikke foreslå">⊘</button>
+        <button data-add="${d.id}" aria-label="Legg inn i uka" title="Legg inn i uka">＋</button>
+        ${d.own ? `<button data-edit="${d.id}" aria-label="Endre" title="Endre">✎</button>` : ""}
+      </div>
+      <div class="meta"><span class="pill ${d.kos ? "kos" : d.k}">${d.kos ? "kos" : esc(d.k)}</span>${d.t} min${d.helg ? " · helg" : ""} · ${lu ? "sist " + dm(new Date(lu)) : "ikke laget ennå"}${never ? " · foreslås ikke" : ""}</div>
+      <details class="ing"><summary>Ingredienser (4 porsjoner)</summary>${d.ing.map(i => esc(`${i.q != null ? fmtQty(i.q, i.u) + " " : ""}${i.n}`)).join(", ")}</details>
+    </div>`;
+  }).join("") || `<p class="hint">Ingen treff.</p>`;
+}
+$("#bankFilter").addEventListener("click", e => { const b = e.target.closest("[data-cat]"); if (b){ bankCat = b.dataset.cat; renderBank(); } });
+$("#bankSearch").addEventListener("input", renderBank);
+$("#bankList").addEventListener("click", e => {
+  const b = e.target.closest("button"); if (!b) return;
+  const tog = (arr, id) => { const i = arr.indexOf(id); if (i >= 0) arr.splice(i, 1); else arr.push(id); };
+  if (b.dataset.fav){ tog(S.fav, b.dataset.fav); save(); renderBank(); }
+  if (b.dataset.never){ tog(S.never, b.dataset.never); save(); renderBank(); }
+  if (b.dataset.add){ openPicker(null, b.dataset.add); }
+  if (b.dataset.edit){ openDishForm(b.dataset.edit); }
+});
+$("#newDish").onclick = () => openDishForm(null);
+function openDishForm(id){
+  const c = id ? S.custom.find(x => x.id === id) : {n:"", k:"kjøtt", t:30, kos:false, helg:false, lines:[]};
+  const box = document.createElement("div"); box.className = "dialog";
+  box.innerHTML = `<div class="sheet" role="dialog" aria-label="Egen rett"><h3>${id ? "Endre rett" : "Ny rett"}</h3>
+    <label class="lbl" for="dn">Navn</label><input type="text" id="dn" value="${esc(c.n)}">
+    <div class="grid2"><div><label class="lbl" for="dk">Type</label><select id="dk">${CATS.map(([k, n]) => `<option value="${k}" ${c.k === k ? "selected" : ""}>${n}</option>`).join("")}</select></div>
+    <div><label class="lbl" for="dt">Minutter</label><input type="number" id="dt" min="5" max="300" value="${c.t}"></div></div>
+    <div class="chips" style="margin-top:10px"><button class="chip" id="dkos" aria-pressed="${!!c.kos}">Kos (fredag)</button><button class="chip" id="dhelg" aria-pressed="${!!c.helg}">Helgerett</button></div>
+    <label class="lbl" for="di">Ingredienser for 4 porsjoner, én per linje</label>
+    <textarea id="di" placeholder="600 g kyllingfilet&#10;1 boks kokosmelk&#10;4 dl ris">${esc((c.lines || []).join("\n"))}</textarea>
+    <p class="hint">Skriv mengde, enhet og vare: g, kg, dl, l, stk, pk, boks, beger, glass, pose, flaske, ss eller ts. Varer uten mengde går også.</p>
+    <div style="display:flex;gap:6px;flex-wrap:wrap;margin-top:10px"><button class="btn main" data-save>Lagre</button><button class="btn" data-close>Avbryt</button>${id ? `<button class="btn" data-del style="margin-left:auto">Slett</button>` : ""}</div></div>`;
+  box.addEventListener("click", e => {
+    const b = e.target.closest("button");
+    if (e.target === box || b?.dataset.close !== undefined){ box.remove(); return; }
+    if (b?.id === "dkos" || b?.id === "dhelg"){ b.setAttribute("aria-pressed", String(b.getAttribute("aria-pressed") !== "true")); return; }
+    if (b?.dataset.del !== undefined){ S.custom = S.custom.filter(x => x.id !== id); DISHES = allDishes(); save(); renderAll(); box.remove(); return; }
+    if (b?.dataset.save !== undefined){
+      const n = box.querySelector("#dn").value.trim(); if (!n){ box.querySelector("#dn").focus(); return; }
+      const rec = {id: id || "e" + Date.now().toString(36), n, k:box.querySelector("#dk").value, t:+box.querySelector("#dt").value || 30,
+        kos:box.querySelector("#dkos").getAttribute("aria-pressed") === "true", helg:box.querySelector("#dhelg").getAttribute("aria-pressed") === "true",
+        lines:box.querySelector("#di").value.split("\n").map(x => x.trim()).filter(Boolean)};
+      if (id) S.custom = S.custom.map(x => x.id === id ? rec : x); else S.custom.push(rec);
+      DISHES = allDishes(); save(); renderAll(); box.remove(); toast(id ? "Endret" : "Lagt til");
+    }
+  });
+  document.body.appendChild(box);
+}
+
+/* ---------- oppsett ---------- */
+function renderSettings(){
+  $("#portions").value = S.settings.portions;
+  $("#rules").innerHTML = DAYS.map((d, i) => `<label for="r${i}">${d}</label><select id="r${i}" data-rule="${i}">${RULES.map(([k, n]) => `<option value="${k}" ${S.settings.rules[i] === k ? "selected" : ""}>${n}</option>`).join("")}</select>`).join("");
+  $("#optQuick").setAttribute("aria-pressed", String(!!S.settings.quick));
+  $("#optReuse").setAttribute("aria-pressed", String(!!S.settings.reuse));
+  const c = conn();
+  $("#apiUrl").value = c.api || ""; $("#apiKey").value = c.k || "";
+  $("#shareState").innerHTML = c.api ? `<div class="okbox">Koblet til felles lagring. Endringer dere gjør, vises hos den andre innen et halvt minutt.</div>` : `<div class="warnbox">Ikke koblet. Planen lagres bare på denne enheten til dere kobler til regnearket.</div>`;
+  $("#shareLink").disabled = !c.api; $("#disconnect").disabled = !c.api;
+}
+$("#portions").addEventListener("change", e => { S.settings.portions = Math.max(1, Math.min(20, +e.target.value || 4)); save(); });
+$("#rules").addEventListener("change", e => { if (e.target.dataset.rule){ S.settings.rules[+e.target.dataset.rule] = e.target.value; save(); } });
+$("#optQuick").onclick = () => { S.settings.quick = !S.settings.quick; save(); renderSettings(); };
+$("#optReuse").onclick = () => { S.settings.reuse = !S.settings.reuse; save(); renderSettings(); };
+
+/* ---------- felles lagring via Apps Script ---------- */
+const conn = () => local.get("conn", {});
+let pushTimer = null, pulling = false, dirty = false;
+function setSync(txt){ $("#syncState").innerHTML = txt; }
+function save(){
+  local.set("state", S);
+  if (!conn().api) return;
+  dirty = true; setSync("Lagrer …");
+  clearTimeout(pushTimer); pushTimer = setTimeout(push, 700);
+}
+function readable(){
+  const mon = mondayOf(new Date()), rows = [];
+  for (let k = 0; k < 4; k++){ const m = addDays(mon, 7 * k), w = S.weeks[weekKey(m)]; if (w) w.days.forEach((d, i) => rows.push([`Uke ${weekNo(m)}`, `${DAYS[i]} ${dm(addDays(m, i))}`, d.id ? (dishById(d.id)?.n || "") : ""])); }
+  return {ukeplan: rows};
+}
+async function api(body){
+  const c = conn();
+  const r = await fetch(c.api, {method:"POST", body:JSON.stringify({...body, k:c.k})});
+  const j = await r.json();
+  if (j.error) throw new Error(j.error);
+  return j;
+}
+async function push(){
+  try {
+    const j = await api({action:"set", base:S.v, state:S, readable:readable()});
+    if (j.conflict){ S = j.state; DISHES = allDishes(); local.set("state", S); renderAll(); toast("Oppdatert med endringer fra den andre"); }
+    else { S.v = j.v; local.set("state", S); }
+    dirty = false; setSync(`<b>●</b> Felles · lagret ${new Date().toLocaleTimeString("nb-NO", {hour:"2-digit", minute:"2-digit"})}`);
+  } catch (e) { setSync("Ikke lagret felles ennå, prøver igjen"); clearTimeout(pushTimer); pushTimer = setTimeout(push, 8000); }
+}
+async function pull(){
+  if (!conn().api || pulling || dirty) return;
+  pulling = true;
+  try {
+    const j = await api({action:"get"});
+    if (j.state && j.state.v !== S.v){ S = Object.assign(clone(DEFAULT), j.state); S.settings = Object.assign(clone(DEFAULT.settings), S.settings || {}); DISHES = allDishes(); local.set("state", S); renderAll(); }
+    if (!j.state && S.v === 0) push(); // tomt regneark: last opp det som ligger her
+    setSync(`<b>●</b> Felles · oppdatert ${new Date().toLocaleTimeString("nb-NO", {hour:"2-digit", minute:"2-digit"})}`);
+  } catch (e) { setSync("Får ikke kontakt med felles lagring"); }
+  pulling = false;
+}
+$("#connect").onclick = async () => {
+  const apiUrl = $("#apiUrl").value.trim(), k = $("#apiKey").value.trim();
+  if (!/^https:\/\/script\.google\.com\/macros\/s\/.+\/exec$/.test(apiUrl) || !k){ toast("Sjekk adressen (slutter på /exec) og nøkkelen"); return; }
+  local.set("conn", {api:apiUrl, k});
+  try { const j = await api({action:"get"}); if (j.state){ S = Object.assign(clone(DEFAULT), j.state); DISHES = allDishes(); local.set("state", S); } else await push(); renderAll(); toast("Koblet til"); }
+  catch (e) { toast("Fikk ikke koblet til: " + e.message); }
+  renderSettings();
+};
+$("#disconnect").onclick = () => { local.set("conn", {}); renderSettings(); setSync("Lagres på denne enheten"); };
+$("#shareLink").onclick = () => { const c = conn(); copyText(`${location.origin}${location.pathname}#api=${encodeURIComponent(c.api)}&k=${encodeURIComponent(c.k)}`); };
+function connFromHash(){
+  const h = new URLSearchParams(location.hash.slice(1));
+  if (h.get("api") && h.get("k")){ local.set("conn", {api:h.get("api"), k:h.get("k")}); history.replaceState(null, "", location.pathname); return true; }
+  return false;
+}
+
+/* ---------- faner og oppstart ---------- */
+function showTab(name){
+  document.querySelectorAll("nav.tabs button").forEach(b => b.setAttribute("aria-selected", String(b.dataset.pane === name)));
+  ["uke","liste","bank","oppsett"].forEach(p => $("#pane-" + p).hidden = p !== name);
+  local.set("tab", name);
+  if (name === "liste") renderList(); if (name === "bank") renderBank(); if (name === "oppsett") renderSettings();
+}
+document.querySelectorAll("nav.tabs button").forEach(b => b.addEventListener("click", () => showTab(b.dataset.pane)));
+function renderAll(){ renderWeek(); if (!$("#pane-liste").hidden) renderList(); if (!$("#pane-bank").hidden) renderBank(); if (!$("#pane-oppsett").hidden) renderSettings(); }
+
+const fromLink = connFromHash();
+if (conn().api) setSync("Kobler til …");
+renderWeek();
+showTab(fromLink ? "uke" : local.get("tab", "uke"));
+if (conn().api){ pull(); setInterval(pull, 20000); document.addEventListener("visibilitychange", () => { if (!document.hidden) pull(); }); }
+if (fromLink) toast("Koblet til felles middagsplan");
+</script>
+</body>
+</html>
