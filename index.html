@@ -111,7 +111,7 @@ details.ing summary{cursor:pointer;width:max-content}
 .inspo button{flex:0 0 auto;border:1px dashed var(--line);background:var(--panel);color:var(--ink);border-radius:12px;padding:8px 12px;cursor:pointer;font:inherit;text-align:left;max-width:220px}
 .inspo button small{display:block;color:var(--muted);font-size:.76rem}
 footer{margin-top:28px;font-size:.78rem;color:var(--muted);border-top:1px solid var(--line);padding-top:10px}
-@media (max-width:480px){ .day{grid-template-columns:46px 1fr} .dayact{grid-column:1/-1;justify-content:flex-end} }
+@media (max-width:480px){ .day{grid-template-columns:42px 1fr auto;gap:4px 8px;padding:9px 10px} .dayact{flex-direction:column;gap:3px} .dayact button{width:32px;height:30px;font-size:.85rem} }
 @media (prefers-reduced-motion:reduce){*{transition:none!important}}
 </style>
 </head>
@@ -276,6 +276,7 @@ const SPECIAL = [
  {id:"rester", n:"Restemiddag", k:"annet", t:10, kos:false, helg:false, ing:[], special:true},
  {id:"ute", n:"Spiser ute / takeaway", k:"annet", t:0, kos:true, helg:false, ing:[], special:true},
 ];
+const FAMILIES = ["taco","burger","suppe","pasta","spaghetti","wok","grateng","lasagne","pita","pølse"];
 const CATS = [["fisk","Fisk"],["kylling","Kylling"],["kjøtt","Kjøtt"],["vegetar","Vegetar"],["annet","Annet"]];
 
 /* ---------- varekatalog: avdeling og hvordan varen kan kjøpes ved storhandel ---------- */
@@ -380,6 +381,11 @@ function score(d, rule, chosen){
     const fresh = new Set(chosen.flatMap(c => c.ing.filter(i => storage(i.n) === "fersk").map(i => i.n)));
     s += d.ing.filter(i => fresh.has(i.n)).length * 0.8;
   }
+  // ikke samme slags rett flere ganger i uka (taco, burger, suppe …), og kosretter hører til kosdagen
+  const fam = n => (FAMILIES.find(f => n.toLowerCase().includes(f)) || null);
+  const f = fam(d.n);
+  if (f && chosen.some(c => fam(c.n) === f)) s -= 5;
+  if (d.kos && rule !== "kos" && chosen.some(c => c.kos)) s -= 4;
   // unngå samme kategori to dager på rad
   if (chosen.length && chosen[chosen.length - 1].k === d.k) s -= 1.5;
   // kvote i uka: fisk og vegetar har faste dager, så helgen får heller kjøtt eller kylling
@@ -392,7 +398,9 @@ function suggestWeek(mon, onlyDay = null){
   const chosen = [];
   w.days.forEach((d, i) => { if ((d.lock || (onlyDay !== null && i !== onlyDay)) && d.id){ const x = dishById(d.id); if (x) chosen.push(x); } });
   const used = new Set(chosen.map(c => c.id));
-  const order = [0,1,2,3,4,5,6].sort((a, b) => (S.settings.rules[a] === "helg") - (S.settings.rules[b] === "helg"));
+  // rekkefølge: kosdagen først, så faste kategoridager, så valgfrie dager og helgen til slutt
+  const prio = r => r === "kos" ? 0 : r === "valgfritt" ? 2 : r === "helg" ? 3 : 1;
+  const order = [0,1,2,3,4,5,6].sort((a, b) => prio(S.settings.rules[a]) - prio(S.settings.rules[b]) || a - b);
   order.forEach(i => {
     const d = w.days[i];
     if (d.lock) return;
@@ -416,7 +424,7 @@ function renderWeek(){
     const ruleName = (RULES.find(r => r[0] === rule) || [0,"Valgfritt"])[1];
     return `<div class="day${ymd(date) === today ? " today" : ""}">
       <div class="dname">${DAYS[i].slice(0,3)}<small>${dm(date)}</small></div>
-      <div class="dish">${x ? `<b>${esc(x.n)}</b><div class="meta"><span class="pill ${x.kos && x.k !== "annet" ? "kos" : x.k}">${x.kos && x.k !== "annet" ? "kos" : esc(x.k)}</span>${x.t ? `${x.t} min` : ""}${S.fav.includes(x.id) ? " · ★ favoritt" : ""}</div>` : `<span class="empty">Ingen middag valgt (${esc(ruleName.toLowerCase())})</span>`}</div>
+      <div class="dish">${x ? `<b>${esc(x.n)}</b><div class="meta"><span class="pill ${x.k}">${esc(x.k)}</span>${x.kos && x.k !== "annet" ? `<span class="pill kos">kos</span>` : ""}${x.t ? `${x.t} min` : ""}${S.fav.includes(x.id) ? " · ★ favoritt" : ""}</div>` : `<span class="empty">Ingen middag valgt (${esc(ruleName.toLowerCase())})</span>`}</div>
       <div class="dayact">
         <button data-lock="${i}" aria-pressed="${d.lock}" aria-label="Behold ${DAYS[i]}" title="Behold">🔒</button>
         <button data-reroll="${i}" aria-label="Nytt forslag for ${DAYS[i]}" title="Nytt forslag">↻</button>
@@ -578,7 +586,7 @@ function renderBank(){
         <button data-add="${d.id}" aria-label="Legg inn i uka" title="Legg inn i uka">＋</button>
         ${d.own ? `<button data-edit="${d.id}" aria-label="Endre" title="Endre">✎</button>` : ""}
       </div>
-      <div class="meta"><span class="pill ${d.kos ? "kos" : d.k}">${d.kos ? "kos" : esc(d.k)}</span>${d.t} min${d.helg ? " · helg" : ""} · ${lu ? "sist " + dm(new Date(lu)) : "ikke laget ennå"}${never ? " · foreslås ikke" : ""}</div>
+      <div class="meta"><span class="pill ${d.k}">${esc(d.k)}</span>${d.kos ? `<span class="pill kos">kos</span>` : ""}${d.t} min${d.helg ? " · helg" : ""} · ${lu ? "sist " + dm(new Date(lu)) : "ikke laget ennå"}${never ? " · foreslås ikke" : ""}</div>
       <details class="ing"><summary>Ingredienser (4 porsjoner)</summary>${d.ing.map(i => esc(`${i.q != null ? fmtQty(i.q, i.u) + " " : ""}${i.n}`)).join(", ")}</details>
     </div>`;
   }).join("") || `<p class="hint">Ingen treff.</p>`;
