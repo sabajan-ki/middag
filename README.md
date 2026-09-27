@@ -1,4 +1,4 @@
-# Middagsplanen
+# Middagsplan og månedshandel
 
 Ukeplan for middager og handleliste for to, med felles lagring i et Google-regneark.
 
