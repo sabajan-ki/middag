@@ -691,9 +691,10 @@ async function pull(){
 $("#connect").onclick = async () => {
   const apiUrl = $("#apiUrl").value.trim(), k = $("#apiKey").value.trim();
   if (!/^https:\/\/script\.google\.com\/macros\/s\/.+\/exec$/.test(apiUrl) || !k){ toast("Sjekk adressen (slutter på /exec) og nøkkelen"); return; }
+  const before = conn();
   local.set("conn", {api:apiUrl, k});
-  try { const j = await api({action:"get"}); if (j.state){ S = Object.assign(clone(DEFAULT), j.state); DISHES = allDishes(); local.set("state", S); } else await push(); renderAll(); toast("Koblet til"); }
-  catch (e) { toast("Fikk ikke koblet til: " + e.message); }
+  try { const j = await api({action:"get"}); if (j.state){ S = Object.assign(clone(DEFAULT), j.state); DISHES = allDishes(); local.set("state", S); } else await push(); renderAll(); toast("Koblet til"); startSync(); }
+  catch (e) { local.set("conn", before); toast("Fikk ikke koblet til: " + e.message); } // behold forrige kobling ved feil
   renderSettings();
 };
 $("#disconnect").onclick = () => { local.set("conn", {}); renderSettings(); setSync("Lagres på denne enheten"); };
@@ -718,7 +719,12 @@ const fromLink = connFromHash();
 if (conn().api) setSync("Kobler til …");
 renderWeek();
 showTab(fromLink ? "uke" : local.get("tab", "uke"));
-if (conn().api){ pull(); setInterval(pull, 20000); document.addEventListener("visibilitychange", () => { if (!document.hidden) pull(); }); }
+let syncStarted = false;
+function startSync(){
+  if (syncStarted || !conn().api) return; syncStarted = true;
+  setInterval(pull, 20000); document.addEventListener("visibilitychange", () => { if (!document.hidden) pull(); });
+}
+if (conn().api){ pull(); startSync(); }
 if (fromLink) toast("Koblet til felles middagsplan");
 </script>
 </body>
