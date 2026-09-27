@@ -6,7 +6,7 @@
  *
  * Oppsett (én gang):
  *   1. Kjør funksjonen «oppsett» (godkjenn tilgang). Loggen viser regnearket og nøkkelen.
- *   2. Distribuer → Ny distribusjon → Nettapp. Kjør som: meg. Hvem har tilgang: Alle.
+ * 2. Implementer → Ny implementering → Nettapp. Kjør som: Meg. Hvem har tilgang: Alle.
  *   3. Lim inn nettapp-adressen og nøkkelen under Oppsett i middagsplanen.
  */
 
