@@ -1042,8 +1042,7 @@ function renderTrip(t, note = ""){
   out.innerHTML = `
     <p class="hint">Sist sjekket ${esc(t.sistSjekket)} · siste fulle prisrunde ${esc(t.sisteFulle)} · sendt ${esc(t.sendt)}</p>
     <div class="flights">
-      <div class="flight"><h3>Torp</h3><b>${esc(b.torp || "–")}</b></div>
-      <div class="flight"><h3>Gardermoen</h3><b>${esc(b.gardermoen || "–")}</b></div>
+      ${[["Torp", b.torp], ["Gardermoen", b.gardermoen]].map(([n, v]) => { const m = String(v || "–").match(/^([^(]+?)\s*\((.+)\)\s*$/); return `<div class="flight"><h3>${n}</h3><b>${esc(m ? m[1] : v || "–")}</b>${m ? `<small>${esc(m[2])}</small>` : ""}</div>`; }).join("")}
     </div>
     <p class="hint">Laveste noen gang: ${esc(b.laveste || "–")}${t.prisgrense ? ` · prisgrense for varsel: ${esc(t.prisgrense)}` : ""}</p>
     <div class="card"><label class="lbl" style="margin-top:0">Kort sagt</label>${nl(t.kortSagt)}</div>
