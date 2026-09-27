@@ -3,6 +3,8 @@
  *
  * Siden (middag.html) sender hele planen hit som JSON. Scriptet lagrer den i arket «_data»
  * og skriver en lesbar kopi av ukeplanen i arket «Ukeplan».
+ * Flyvakta på Macen sender siste flypriser for høstferien hit (arket «_flyvakt»), og fanen
+ * «Høstferie 2027» i appen henter dem. Samme nøkkel gjelder for begge.
  *
  * Oppsett (én gang):
  *   1. Kjør funksjonen «oppsett» (godkjenn tilgang). Loggen viser regnearket og nøkkelen.
@@ -46,6 +48,15 @@ function behandle(p) {
 
   if (p.action === 'get') return { state: les() };
 
+  if (p.action === 'getTrip') return { trip: les('_flyvakt') };
+
+  if (p.action === 'setTrip') {
+    if (!p.trip || typeof p.trip !== 'object') return { error: 'Mangler flydata' };
+    const lock = LockService.getScriptLock();
+    lock.waitLock(10000);
+    try { skriv(p.trip, '_flyvakt'); return { ok: true }; } finally { lock.releaseLock(); }
+  }
+
   if (p.action === 'set') {
     const lock = LockService.getScriptLock();
     lock.waitLock(10000);
@@ -70,8 +81,8 @@ function ark(navn) {
   return ss.getSheetByName(navn) || ss.insertSheet(navn);
 }
 
-function les() {
-  const sh = ark('_data');
+function les(navn) {
+  const sh = ark(navn || '_data');
   const n = sh.getLastRow();
   if (n < 1) return null;
   // hver celle starter med «~» så Regneark aldri tolker innholdet som formel eller tall
@@ -80,8 +91,8 @@ function les() {
   try { return JSON.parse(txt); } catch (err) { return null; }
 }
 
-function skriv(state) {
-  const sh = ark('_data');
+function skriv(state, navn) {
+  const sh = ark(navn || '_data');
   const txt = JSON.stringify(state);
   const deler = [];
   for (let i = 0; i < txt.length; i += CHUNK) deler.push(['~' + txt.slice(i, i + CHUNK)]);
