@@ -300,7 +300,7 @@ const FAMILIES = ["taco","burger","suppe","pasta","spaghetti","wok","grateng","l
 const CATS = [["fisk","Fisk"],["kylling","Kylling"],["kjøtt","Kjøtt"],["vegetar","Vegetar"],["annet","Annet"]];
 
 /* ---------- varekatalog: avdeling og hvordan varen kan kjøpes ved storhandel ---------- */
-const DEPTS_ALL = ["Frukt og grønt","Brød","Frokost og pålegg","Kjøtt og kylling","Fisk","Meieri og egg","Frysedisken","Tørrvarer og hermetikk","Krydder og sauser","Drikke","Husholdning og hygiene","Annet"];
+const DEPTS_ALL = ["Frukt og grønt","Brød","Frokost og pålegg","Kjøtt og kylling","Fisk","Meieri og egg","Frysedisken","Tørrvarer og hermetikk","Krydder og sauser","Drikke","Snacks og godteri","Husholdning og hygiene","Annet"];
 function deptOrder(){ const o = (S.settings.deptOrder || []).filter(d => DEPTS_ALL.includes(d)); DEPTS_ALL.forEach(d => { if (!o.includes(d)) o.push(d); }); return o; }
 /* Faste varer for en familie på fem: [vare, avdeling, dager mellom hver gang (0 = ved behov)] */
 const STAPLES_DEFAULT = [
@@ -318,13 +318,28 @@ const STAPLES_DEFAULT = [
  ["vaskemiddel","Husholdning og hygiene",30],["søppelposer","Husholdning og hygiene",30],["bakepapir","Husholdning og hygiene",30],["matpapir","Husholdning og hygiene",30],
  ["fryseposer","Husholdning og hygiene",30],["tannkrem","Husholdning og hygiene",30],["såpe","Husholdning og hygiene",30],["sjampo","Husholdning og hygiene",30],
 ];
+/* Tilpasset etter Kiwi-kvittering 26.09.26: dere baker brød selv, kjøpebrød er til de minste */
+const STAPLES_V2 = [
+ ["sammalt hvete","Tørrvarer og hermetikk",30],["gjær","Tørrvarer og hermetikk",14],
+ ["porchetta","Frokost og pålegg",7],["baconterninger","Kjøtt og kylling",14],["fløtepudding","Fisk",14],
+ ["matfløte","Meieri og egg",14],["smågodt","Snacks og godteri",7],["snacks","Snacks og godteri",7],
+];
+const STAPLES_RENAME = {"brød":"kjøpebrød (til de minste)","skinkepålegg":"kokt skinke"};
 const EVERY = [[7,"Hver uke"],[14,"Annenhver uke"],[30,"Hver måned"],[0,"Ved behov"]];
 const HOLDBAR_DEPTS = new Set(["Tørrvarer og hermetikk","Krydder og sauser","Husholdning og hygiene","Frysedisken","Drikke"]);
 function ensureStaples(){
-  if (Array.isArray(S.staples)) return;
+  if (Array.isArray(S.staples)){
+    if ((S.staplesV || 1) < 2){ // én gang: legg til varer fra kvitteringen og gi to varer bedre navn
+      S.staples.forEach(st => { if (STAPLES_RENAME[st.n]) st.n = STAPLES_RENAME[st.n]; });
+      STAPLES_V2.forEach(([n, dept, every], i) => { if (!S.staples.some(x => x.n === n)) S.staples.push({id:"s2_" + i, n, dept, every, empty:false, last:null}); });
+      S.staplesV = 2; setTimeout(save);
+    }
+    return;
+  }
+  S.staplesV = 2;
   // første gang: ukevarer er på tide nå, resten spres utover så første handletur ikke blir enorm
   const today = new Date();
-  S.staples = STAPLES_DEFAULT.map(([n, dept, every], i) => ({id:"s" + i, n, dept, every, empty:false,
+  S.staples = STAPLES_DEFAULT.concat(STAPLES_V2).map(([n0, dept, every], i) => ({id:"s" + i, n:STAPLES_RENAME[n0] || n0, dept, every, empty:false,
     last: every === 7 ? null : every === 14 ? ymd(addDays(today, -7)) : every === 30 ? ymd(addDays(today, -15 - (i % 3) * 5)) : null}));
 }
 function stapleDue(st, until, last = st.last){
