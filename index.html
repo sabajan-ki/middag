@@ -263,7 +263,7 @@ footer{margin-top:28px;font-size:.78rem;color:var(--muted);border-top:1px solid 
 <!-- HØSTFERIE 2027 -->
 <section class="pane" id="pane-ferie" hidden>
   <div class="bar"><h2>Høstferie 2027</h2><button class="btn small" id="tripRefresh">Oppdater</button></div>
-  <p class="hint" style="margin-top:0">Alicante tur/retur fra Torp eller Gardermoen, 09.10–17.10.27. Totalpris for fem med setevalg og 2 kofferter. Prisene hentes av flyvakta hver kveld.</p>
+  <p class="hint" style="margin-top:0">Siste status fra flyvakta, som sjekker priser og kampanjer hver kveld.</p>
   <div id="tripOut"><p class="hint">Henter …</p></div>
 </section>
 
@@ -1055,6 +1055,8 @@ function renderTrip(t, note = ""){
 }
 async function loadTrip(force = false){
   if (tripLoaded && !force) return;
+  if (force && conn().api) await pull(); // flyvakta legger status i den felles planen
+  if (S.trip){ tripLoaded = true; renderTrip(S.trip); return; }
   const cached = local.get("trip", null);
   if (!conn().api){ renderTrip(cached, `<div class="warnbox">Koble til felles lagring under Oppsett for å få flyprisene.</div>`); return; }
   if (cached) renderTrip(cached, `<p class="hint">Henter nyeste …</p>`);
@@ -1063,7 +1065,7 @@ async function loadTrip(force = false){
     tripLoaded = true; local.set("trip", j.trip || null); renderTrip(j.trip || null);
   } catch (e) {
     const old = /ukjent handling/i.test(e.message);
-    renderTrip(cached, `<div class="warnbox">${old ? "Apps Script-en må oppdateres med ny Kode.gs for å vise flypriser (se LES MEG)." : "Fikk ikke hentet flyprisene: " + esc(e.message)}</div>`);
+    renderTrip(cached, old ? "" : `<div class="warnbox">Fikk ikke hentet flyprisene: ${esc(e.message)}</div>`);
   }
 }
 $("#tripRefresh").onclick = () => loadTrip(true);
@@ -1077,7 +1079,7 @@ function showTab(name){
   if (name === "ferie") loadTrip(); if (name === "bank") renderBank(); if (name === "oppsett") renderSettings();
 }
 document.querySelectorAll("nav.tabs button").forEach(b => b.addEventListener("click", () => showTab(b.dataset.pane)));
-function renderAll(){ ensureStaples(); renderWeek(); if (!$("#pane-liste").hidden){ renderList(); renderStaples(); } if (!$("#pane-bank").hidden) renderBank(); if (!$("#pane-oppsett").hidden) renderSettings(); }
+function renderAll(){ ensureStaples(); renderWeek(); if (!$("#pane-ferie").hidden && S.trip) renderTrip(S.trip); if (!$("#pane-liste").hidden){ renderList(); renderStaples(); } if (!$("#pane-bank").hidden) renderBank(); if (!$("#pane-oppsett").hidden) renderSettings(); }
 
 const fromLink = connFromHash();
 if (conn().api) setSync("Kobler til …");
