@@ -124,6 +124,7 @@ details.ing summary{cursor:pointer;width:max-content}
 .tbl table.grid td,.tbl table.grid th{text-align:center;padding:7px 4px;font-variant-numeric:tabular-nums}
 .tbl table.grid tbody th{text-align:left;white-space:nowrap}
 .tbl table.grid td.muted{color:var(--muted);font-size:.78rem}
+.tbl table.grid td a{color:inherit;text-decoration:underline;text-underline-offset:2px}
 .tbl table.grid td.best{background:var(--soft);color:var(--accent);font-weight:700}
 .logrow{display:flex;flex-direction:column;gap:2px;padding:8px 0;border-bottom:1px solid var(--line);font-size:.88rem}
 .logrow:last-child{border-bottom:0}
@@ -1039,7 +1040,8 @@ function connFromHash(){
 
 /* ---------- høstferie 2027: flypriser fra flyvakta (via Apps Script) ---------- */
 let tripLoaded = false;
-const nl = t => esc(t || "").replace(/\n+/g, "<br>");
+const linkify = t => esc(t || "").replace(/https?:\/\/[^\s<)]+/g, u => `<a href="${u}" target="_blank" rel="noopener">${u.replace(/^https?:\/\/(www\.)?/, "").split("/")[0]} ↗</a>`);
+const nl = t => linkify(t).replace(/\n+/g, "<br>");
 function renderTrip(t, note = ""){
   const out = $("#tripOut");
   if (!t){ out.innerHTML = `<div class="card">Ingen data fra flyvakta ennå. Den sender etter neste kjøring (hver kveld kl. 18 på Macen).</div>${note}`; return; }
@@ -1049,17 +1051,33 @@ function renderTrip(t, note = ""){
   out.innerHTML = `
     <p class="hint">Sist sjekket ${esc(t.sistSjekket)} · siste fulle prisrunde ${esc(t.sisteFulle)} · sendt ${esc(t.sendt)}${t.kofferter ? ` · totalpris for fem med setevalg og ${t.kofferter} kofferter t/r` : ""}</p>
     <div class="flights">
-      ${[["Torp", b.torp], ["Gardermoen", b.gardermoen]].map(([n, v]) => { const m = String(v || "–").match(/^([^(]+?)\s*\((.+)\)\s*$/); return `<div class="flight"><h3>${n}</h3><b>${esc(m ? m[1] : v || "–")}</b>${m ? `<small>${esc(m[2])}</small>` : ""}</div>`; }).join("")}
+      ${[["Torp", b.torp, "TRF"], ["Gardermoen", b.gardermoen, "OSL"]].map(([n, v, code]) => {
+        const m = String(v || "–").match(/^([^(]+?)\s*\((.+)\)\s*$/);
+        const priced = (t.prislogg || []).filter(r => r.fra === code && /\d/.test(r["totalt m/ sete+bagasje"] || ""));
+        // billigst først; ved lik pris velges kombinasjonen som står i «beste pris»-teksten
+        const inText = r => { const d = String(r["ut–hjem"]).match(/(\d\d\.\d\d)\s*[–-]\s*(\d\d\.\d\d)/); return d && String(v).includes(d[1]) && String(v).includes(d[2]) ? 0 : 1; };
+        const cheapest = priced.sort((a, c) => (+String(a["totalt m/ sete+bagasje"]).replace(/\D/g, "") - +String(c["totalt m/ sete+bagasje"]).replace(/\D/g, "")) || inText(a) - inText(c))[0];
+        const href = cheapest ? flightLink(cheapest) : "";
+        return `<div class="flight"><h3>${n}</h3><b>${esc(m ? m[1] : v || "–")}</b>${m ? `<small>${esc(m[2])}</small>` : ""}${href ? `<a class="btn small main" style="margin-top:8px;display:inline-flex" href="${esc(href)}" target="_blank" rel="noopener">Bestill hos ${esc(cheapest.selskap)} ↗</a>` : ""}</div>`;
+      }).join("")}
     </div>
     <p class="hint">Laveste noen gang: ${esc(b.laveste || "–")}${t.prisgrense ? ` · prisgrense for varsel: ${esc(t.prisgrense)}` : ""}</p>
     <div class="card"><label class="lbl" style="margin-top:0">Kort sagt</label>${nl(t.kortSagt)}</div>
-    <div class="card"><label class="lbl" style="margin-top:0">Kampanjer som gjelder høstferien</label>${t.kampanjer && t.kampanjer.length ? `<ul style="margin:0;padding-left:18px">${t.kampanjer.map(x => `<li>${esc(x)}</li>`).join("")}</ul>` : "Ingen nå."}</div>
+    <div class="card"><label class="lbl" style="margin-top:0">Kampanjer som gjelder høstferien</label>${t.kampanjer && t.kampanjer.length ? `<ul style="margin:0;padding-left:18px">${t.kampanjer.map(x => `<li>${linkify(x)}</li>`).join("")}</ul>` : "Ingen nå."}</div>
     ${t.andreDatoer ? `<div class="card"><label class="lbl" style="margin-top:0">Andre datoer</label>${nl(t.andreDatoer)}</div>` : ""}
     ${dateGrid(t)}
     ${logg.length ? `<details class="card"><summary><b>Siste søk</b> (${logg.length})</summary>${logg.map(r => `<div class="logrow"><b>${esc(r.dato)} · ${esc(r.fra)} · ${esc(r["ut–hjem"])}</b><span>${esc([r.selskap, k(r)].filter(x => x && x !== "–").join(" · ") || "")}${r.merknad ? ` <em>${esc(r.merknad)}</em>` : ""}</span></div>`).join("")}</details>` : ""}
-    ${t.gebyrer && t.gebyrer.length ? `<details class="card"><summary><b>Gebyrer for sete og bagasje</b></summary><div class="tbl"><table><thead><tr><th>Selskap</th><th>Anslag t/r for fem</th><th>Hentet</th></tr></thead><tbody>${t.gebyrer.map(g => `<tr><td>${esc(g.Selskap)}</td><td>${esc(g["Sum (anslag)"])}</td><td>${esc(g.Hentet)}</td></tr>`).join("")}</tbody></table></div></details>` : ""}
-    ${t.andreKampanjer && t.andreKampanjer.length ? `<details class="card"><summary><b>Andre kampanjer</b> (dekker ikke høstferien)</summary><ul style="margin:6px 0 0;padding-left:18px">${t.andreKampanjer.map(x => `<li>${esc(x)}</li>`).join("")}</ul></details>` : ""}
+    ${t.gebyrer && t.gebyrer.length ? `<details class="card"><summary><b>Gebyrer for sete og bagasje</b></summary><div class="tbl"><table><thead><tr><th>Selskap</th><th>Anslag t/r for fem</th><th>Hentet</th></tr></thead><tbody>${t.gebyrer.map(g => { const u = (String(g.Kilde || "").match(/https?:\/\/\S+/) || [""])[0]; return `<tr><td>${u ? `<a href="${esc(u)}" target="_blank" rel="noopener">${esc(g.Selskap)}</a>` : esc(g.Selskap)}</td><td>${esc(g["Sum (anslag)"])}</td><td>${esc(g.Hentet)}</td></tr>`; }).join("")}</tbody></table></div></details>` : ""}
+    ${t.andreKampanjer && t.andreKampanjer.length ? `<details class="card"><summary><b>Andre kampanjer</b> (dekker ikke høstferien)</summary><ul style="margin:6px 0 0;padding-left:18px">${t.andreKampanjer.map(x => `<li>${linkify(x)}</li>`).join("")}</ul></details>` : ""}
     ${note}`;
+}
+/* Lenke til selskapets eget søk for en kombinasjon (datoene kommer fra de private dataene) */
+function flightLink(r){
+  const m = String(r["ut–hjem"] || "").match(/(\d\d)\.(\d\d)\s*[–-]\s*(\d\d)\.(\d\d)\.(\d\d)/); if (!m) return "";
+  const y = "20" + m[5], ut = `${y}-${m[2]}-${m[1]}`, hj = `${y}-${m[4]}-${m[3]}`, fra = r.fra || "TRF";
+  if (/ryanair/i.test(r.selskap || "")) return `https://www.ryanair.com/no/no/trip/flights/select?adults=2&teens=0&children=3&infants=0&dateOut=${ut}&dateIn=${hj}&isConnectedFlight=false&isReturn=true&discount=0&originIata=${fra}&destinationIata=ALC`;
+  if (/norwegian/i.test(r.selskap || "")) return "https://www.norwegian.com/no/lavpriskalender/OsloAlleflyplasser-Alicante";
+  return `https://www.momondo.no/flight-search/${fra}-ALC/${ut}/${hj}/2adults/children-4-7-10?sort=price_a&fs=stops=0`;
 }
 /* Rutenett med alle datokombinasjoner per flyplass, bygget av prisloggen */
 function dateGrid(t){
@@ -1070,19 +1088,20 @@ function dateGrid(t){
   const grid = fra => {
     const cell = (u, h) => {
       const hit = rows.find(r => r.fra === fra && r.ut === u && r.hjem === h);
-      if (hit && kr(hit)) return {txt:kr(hit), price:+kr(hit).replace(/\D/g, "")};
+      if (hit && kr(hit)) return {txt:kr(hit), price:+kr(hit).replace(/\D/g, ""), href:flightLink(hit), sel:hit.selskap};
       const newest = rows.find(r => r.fra === fra);
       const opened = rows.some(r => r.fra === fra && kr(r) && (!hit || r.n > hit.n)); // åpnet etter dette søket
       if (hit && /ikke åpnet/i.test(hit.merknad || "")) return {txt: opened ? "ikke søkt" : "ikke åpnet"};
+      if (hit && /ingen fly/i.test(hit.merknad || "")) return {txt:"ingen fly"};
       if (hit) return {txt:(hit.merknad || "–").slice(0, 18)};
       if (newest && /ikke åpnet/i.test(newest.merknad || "")) return {txt:"ikke åpnet"};
       return {txt:"ikke søkt"};
     };
     const cells = D.ut.map(([ud, u]) => D.hjem.map(([hd, h]) => cell(u, h)));
     const best = Math.min(...cells.flat().filter(c => c.price).map(c => c.price));
-    return `<div class="tbl"><table class="grid"><thead><tr><th>Ut ↓ hjem →</th>${D.hjem.map(([d, h]) => `<th>${d} ${h}</th>`).join("")}</tr></thead><tbody>${D.ut.map(([d, u], i) => `<tr><th>${d} ${u}</th>${cells[i].map(c => `<td class="${c.price ? (c.price === best ? "best" : "") : "muted"}">${esc(c.txt)}</td>`).join("")}</tr>`).join("")}</tbody></table></div>`;
+    return `<div class="tbl"><table class="grid"><thead><tr><th>Ut ↓ hjem →</th>${D.hjem.map(([d, h]) => `<th>${d} ${h}</th>`).join("")}</tr></thead><tbody>${D.ut.map(([d, u], i) => `<tr><th>${d} ${u}</th>${cells[i].map(c => `<td class="${c.price ? (c.price === best ? "best" : "") : "muted"}">${c.href ? `<a href="${esc(c.href)}" target="_blank" rel="noopener" title="Åpne hos ${esc(c.sel || "selskapet")}">${esc(c.txt)}</a>` : esc(c.txt)}</td>`).join("")}</tr>`).join("")}</tbody></table></div>`;
   };
-  return `<div class="card"><label class="lbl" style="margin-top:0">Alle datoer · Torp</label>${grid("TRF")}<label class="lbl">Alle datoer · Gardermoen</label>${grid("OSL")}<p class="hint" style="margin:6px 0 0">Totalpris i kr for fem. Grønn = billigst for flyplassen. Oppdateres etter hver full runde (søndager).</p></div>`;
+  return `<div class="card"><label class="lbl" style="margin-top:0">Alle datoer · Torp</label>${grid("TRF")}<label class="lbl">Alle datoer · Gardermoen</label>${grid("OSL")}<p class="hint" style="margin:6px 0 0">Totalpris i kr for fem. Grønn = billigst for flyplassen. Trykk på en pris for å åpne den hos flyselskapet med to voksne og tre barn fylt inn. Oppdateres etter hver full runde (søndager).</p></div>`;
 }
 async function loadTrip(force = false){
   if (tripLoaded && !force) return;
