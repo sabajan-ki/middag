@@ -68,6 +68,17 @@ button:focus-visible,input:focus-visible,select:focus-visible,textarea:focus-vis
 .seg{display:inline-flex;border:1px solid var(--line);border-radius:10px;overflow:hidden}
 .seg button{border:0;background:var(--panel);color:var(--ink);padding:8px 12px;font:inherit;font-size:.92rem;cursor:pointer;min-height:40px}
 .seg button[aria-pressed="true"]{background:var(--accent);color:var(--accent-ink)}
+.shoptabs{display:grid;grid-template-columns:1fr 1fr;gap:8px}
+.shoptabs button{border:2px solid var(--line);background:var(--panel);color:var(--ink);border-radius:14px;padding:12px;cursor:pointer;text-align:left;font:inherit;display:flex;flex-direction:column;gap:2px;min-height:64px}
+.shoptabs button b{font:800 1.15rem var(--f-disp)}
+.shoptabs button small{color:var(--muted);font-size:.82rem}
+.shoptabs button[aria-pressed="true"]{border-color:var(--accent);background:var(--soft)}
+.shoptabs button[aria-pressed="true"] b{color:var(--accent)}
+.progress{margin:10px 0;font-size:.9rem;color:var(--muted)}
+.progress .bar2{height:8px;border-radius:99px;background:var(--line);overflow:hidden;margin-top:4px}
+.progress .bar2 i{display:block;height:100%;background:var(--accent);border-radius:99px}
+#listOut .items li{padding:11px 12px}
+#listOut .items label>span:first-child{font-size:1.02rem}
 .dept{margin-top:14px}
 .dept h3{font:800 .95rem var(--f-disp);text-transform:uppercase;letter-spacing:.05em;color:var(--muted);margin:0 0 6px}
 .items{list-style:none;margin:0;padding:0;background:var(--panel);border:1px solid var(--line);border-radius:12px;overflow:hidden}
@@ -151,13 +162,11 @@ footer{margin-top:28px;font-size:.78rem;color:var(--muted);border-top:1px solid 
 
 <!-- HANDLELISTE -->
 <section class="pane" id="pane-liste" hidden>
-  <div class="bar">
-    <h2 id="listTitle">Handleliste</h2>
-    <div class="seg" role="group" aria-label="Omfang">
-      <button id="scopeW" aria-pressed="true">Denne uka</button>
-      <button id="scopeM" aria-pressed="false">Måneden</button>
-    </div>
+  <div class="shoptabs" role="group" aria-label="Hvilken handel">
+    <button id="scopeW" aria-pressed="true"><b>Ukeshandel</b><small id="infoW"></small></button>
+    <button id="scopeM" aria-pressed="false"><b>Månedshandel</b><small id="infoM"></small></button>
   </div>
+  <div class="progress" id="progress" aria-live="polite"></div>
   <div class="addrow" style="margin-bottom:6px">
     <input type="text" id="emptyIn" list="stapleNames" placeholder="Tomt for … (f.eks. havregryn, dopapir)">
     <button class="btn main" id="emptyBtn">Tomt</button>
@@ -165,23 +174,27 @@ footer{margin-top:28px;font-size:.78rem;color:var(--muted);border-top:1px solid 
   <datalist id="stapleNames"></datalist>
   <div id="listOut"></div>
   <div class="addrow">
-    <input type="text" id="addItem" placeholder="Legg til vare (f.eks. melk, bleier, kaffe)">
-    <button class="btn main" id="addItemBtn">Legg til</button>
+    <input type="text" id="addItem" placeholder="Engangsvare på denne lista (f.eks. bursdagskake)">
+    <button class="btn" id="addItemBtn">Legg til</button>
   </div>
-  <div style="display:flex;gap:6px;flex-wrap:wrap;margin-top:10px">
-    <button class="btn small" id="copyList">Kopier lista</button>
-    <button class="btn small" id="clearDone">Fjern avkryssede</button>
+  <div style="display:flex;gap:6px;flex-wrap:wrap;margin-top:12px">
+    <button class="btn main" id="doneShop">Ferdig handlet</button>
+    <button class="btn" id="copyList">Kopier lista</button>
   </div>
-  <p class="hint">Mengdene regnes automatisk om til antall porsjoner under Oppsett. Faste varer kommer med når det er på tide etter intervallet, eller når noen har trykket «Tomt». Et kryss betyr kjøpt.</p>
+  <p class="hint">Lista følger rekkefølgen i butikken (Oppsett). Kryss av det du legger i kurven, så synker det ned. «Ferdig handlet» lagrer handelen og tømmer «Tomt»-merkene. Ukeshandelen hopper over middagsvarer som allerede er kjøpt i månedshandelen.</p>
   <details class="card" id="staplesMgr">
     <summary><b>Faste varer</b> <span class="hint" id="staplesCount"></span></summary>
+    <p class="hint" style="margin-top:6px">Lås hver vare til ukeshandelen, månedshandelen eller «ved behov» (kommer bare med når noen trykker «Tomt»). Mengde er valgfri, f.eks. «2 pk».</p>
     <div id="staplesList" class="bank"></div>
     <label class="lbl" for="newStaple">Ny fast vare</label>
     <div class="grid2">
       <input type="text" id="newStaple" placeholder="Vare">
-      <select id="newStapleEvery"><option value="7">Hver uke</option><option value="14">Annenhver uke</option><option value="30" selected>Hver måned</option><option value="0">Ved behov</option></select>
+      <select id="newStaplePlan"><option value="uke">Ukeshandel</option><option value="måned" selected>Månedshandel</option><option value="behov">Ved behov</option></select>
     </div>
-    <select id="newStapleDept" style="margin-top:6px"></select>
+    <div class="grid2" style="margin-top:6px">
+      <select id="newStapleDept"></select>
+      <input type="text" id="newStapleAmt" placeholder="Mengde (valgfri)">
+    </div>
     <button class="btn main" id="addStaple" style="margin-top:8px">Legg til fast vare</button>
   </details>
 </section>
@@ -341,6 +354,18 @@ const STAPLES_RENAME = {"brød":"kjøpebrød (til de minste)","skinkepålegg":"k
 const EVERY = [[7,"Hver uke"],[14,"Annenhver uke"],[30,"Hver måned"],[0,"Ved behov"]];
 const HOLDBAR_DEPTS = new Set(["Tørrvarer og hermetikk","Krydder og sauser","Husholdning og hygiene","Frysedisken","Drikke"]);
 function ensureStaples(){
+  ensureStaplesInner();
+  // lås hver fast vare til en handel: hver uke -> ukeshandel, annenhver uke/måned -> månedshandel (annenhver uke = 2 stk)
+  let changed = false;
+  (S.staples || []).forEach(st => {
+    if (st.plan) return;
+    st.plan = st.every === 7 ? "uke" : !st.every ? "behov" : "måned";
+    st.amt = st.amt || (st.every === 14 ? "2 stk" : "");
+    changed = true;
+  });
+  if (changed) setTimeout(save);
+}
+function ensureStaplesInner(){
   if (Array.isArray(S.staples)){
     const v = S.staplesV || 1;
     if (v < 3){ // én gang per versjon: legg til varer fra kvitteringene og gi noen varer bedre navn
@@ -424,8 +449,9 @@ const DEFAULT = { v:0, settings:{portions:5, rules:["fisk","valgfritt","vegetar"
   weeks:{}, custom:[], fav:[], never:[], lists:{} };
 let S = Object.assign(clone(DEFAULT), local.get("state", {}));
 S.settings = Object.assign(clone(DEFAULT.settings), S.settings || {});
-let viewMonday = mondayOf(new Date());
-let scope = "week";
+// fra lørdag viser appen neste uke: da er det den dere planlegger og handler til
+let viewMonday = (() => { const t = new Date(), m = mondayOf(t); return t.getDay() === 6 || t.getDay() === 0 ? addDays(m, 7) : m; })();
+let scope = local.get("scope", "week") === "month" ? "month" : "week";
 
 /* Ingredienser familien vil bytte ut, f.eks. erter -> brokkoli. Gjelder navn, ingredienser og handleliste. */
 function applySwaps(d){
@@ -590,153 +616,146 @@ function openPicker(dayIdx, dishId = null){
   document.body.appendChild(box);
 }
 
-/* ---------- handleliste ---------- */
-function weeksInScope(){ return scope === "week" ? [viewMonday] : [0,1,2,3].map(k => addDays(viewMonday, 7 * k)); }
+/* ---------- handleliste: ukeshandel og månedshandel i butikkrekkefølge ---------- */
+const PLANS = [["uke","Ukeshandel"],["måned","Månedshandel"],["behov","Ved behov"]];
 function scopeKey(){ return (scope === "week" ? "w:" : "m:") + weekKey(viewMonday); }
-function buildList(){
-  const f = (S.settings.portions || 4) / 4;
-  const map = new Map();
-  weeksInScope().forEach((mon, wi) => {
+function listFor(key){ const L = S.lists[key] || (S.lists[key] = {checked:{}, bought:{}, extra:[]}); L.checked ||= {}; L.bought ||= {}; L.extra ||= []; return L; }
+/* middagsvarer fra gitte uker, slått sammen per vare (ulike enheter på samme linje) */
+function dinnerItems(weeks){
+  const f = (S.settings.portions || 4) / 4, map = new Map();
+  weeks.forEach(mon => {
     const w = S.weeks[weekKey(mon)]; if (!w) return;
     w.days.forEach((d, di) => {
       const x = d.id && dishById(d.id); if (!x) return;
       x.ing.forEach(i => {
-        const key = i.n + "|" + i.u;
-        if (!map.has(key)) map.set(key, {key, n:i.n, u:i.u, q:0, dept:DEPT_OF[i.n] || "Annet", st:storage(i.n), weeks:new Map(), dishes:new Set()});
-        const it = map.get(key);
-        if (i.q != null){ it.q += i.q * f; it.weeks.set(wi, (it.weeks.get(wi) || 0) + i.q * f); }
-        it.dishes.add(DAYS[di].slice(0,3).toLowerCase() + (scope === "month" ? " u" + weekNo(mon) : ""));
+        if (!map.has(i.n)) map.set(i.n, {key:i.n, n:i.n, dept:DEPT_OF[i.n] || "Annet", st:storage(i.n), qty:new Map(), dishes:new Set()});
+        const it = map.get(i.n);
+        if (i.q != null) it.qty.set(i.u, (it.qty.get(i.u) || 0) + i.q * f);
+        it.dishes.add(DAYS[di].slice(0,3).toLowerCase() + (weeks.length > 1 ? " u" + weekNo(mon) : ""));
       });
     });
   });
-  // samme vare i ulike enheter (f.eks. potet i kg og i stk) blir én linje
-  const byName = new Map();
-  [...map.values()].forEach(it => {
-    if (!byName.has(it.n)) byName.set(it.n, {key:it.n, n:it.n, dept:it.dept, st:it.st, parts:[], weeks:new Map(), dishes:new Set()});
-    const m = byName.get(it.n);
-    m.parts.push(it); it.dishes.forEach(x => m.dishes.add(x));
-    it.weeks.forEach((q, wi) => { if (!m.weeks.has(wi)) m.weeks.set(wi, []); m.weeks.get(wi).push([q, it.u]); });
-  });
-  return [...byName.values()];
+  return [...map.values()];
 }
-const qtyAll = it => it.parts.filter(p => p.q).map(p => fmtQty(p.q, p.u)).join(" + ");
-const qtyWeek = (it, wi) => (it.weeks.get(wi) || []).map(([q, u]) => fmtQty(q, u)).join(" + ");
-function renderList(){
-  const sk = scopeKey(); const L = S.lists[sk] || (S.lists[sk] = {checked:{}, extra:[]});
-  $("#listTitle").textContent = scope === "week" ? `Handleliste uke ${weekNo(viewMonday)}` : `Månedshandel uke ${weekNo(viewMonday)}–${weekNo(addDays(viewMonday, 21))}`;
-  const items = buildList();
+const qtyText = it => [...(it.qty || new Map())].map(([u, q]) => fmtQty(q, u)).join(" + ");
+/* varer i en handel: middagsvarer + faste varer låst til handelen + det som er merket tomt + engangsvarer */
+function shopItems(which){
   ensureStaples();
-  const row = (it, qty, keySuffix = "") => {
-    const k = it.key + keySuffix, done = !!L.checked[k];
-    return `<li class="${done ? "done" : ""}"><input type="checkbox" id="c-${esc(k)}" data-check="${esc(k)}" ${it.staple ? `data-staple="${esc(it.staple)}"` : ""} ${done ? "checked" : ""}>
-      <label for="c-${esc(k)}"><span>${esc(it.n)}<span class="for">${esc([...it.dishes].join(", "))}</span></span><span class="amt">${esc(qty)}</span></label></li>`;
-  };
-  const byDept = arr => deptOrder().map(d => [d, arr.filter(x => x[0].dept === d)]).filter(([, a]) => a.length);
-  // faste varer: slås sammen med middagsvaren hvis samme navn, ellers egen linje
-  const stapleLabel = st => st.empty ? "tomt, fast vare" : "fast vare, " + everyName(st.every);
-  const addStaple = (list, st, wi = null) => {
-    const hit = list.find(i => i.n === st.n);
-    if (hit){ hit.staple = st.id; hit.dishes.add("fast vare"); return hit; }
-    const it = {key:"s:" + st.id, n:st.n, dept:st.dept || DEPT_OF[st.n] || "Annet", st:HOLDBAR_DEPTS.has(st.dept) ? "holdbar" : "fersk", parts:[], weeks:new Map(), dishes:new Set([stapleLabel(st)]), staple:st.id};
-    list.push(it); return it;
+  const month = which === "month";
+  let items = dinnerItems(month ? [0,1,2,3].map(k => addDays(viewMonday, 7 * k)) : [viewMonday]);
+  if (month) items = items.filter(i => i.st !== "fersk");
+  else {
+    // hopp over middagsvarer som er kjøpt i en månedshandel som dekker denne uka
+    const mKeys = [0,1,2,3].map(k => "m:" + weekKey(addDays(viewMonday, -7 * k)));
+    items = items.filter(i => !mKeys.some(k => S.lists[k] && (S.lists[k].bought?.[i.key] || S.lists[k].checked?.[i.key])));
+  }
+  const basis = items.filter(i => BASIS.has(i.n)); items = items.filter(i => !BASIS.has(i.n));
+  S.staples.filter(st => st.empty || st.plan === (month ? "måned" : "uke")).forEach(st => {
+    const hit = items.find(i => i.n === st.n);
+    const label = st.empty ? "tomt" : "fast vare";
+    if (hit){ hit.staple = st.id; hit.dishes.add(label); if (st.amt) hit.amt = st.amt; return; }
+    items.push({key:"s:" + st.id, n:st.n, dept:st.dept || DEPT_OF[st.n] || "Annet", qty:new Map(), dishes:new Set([label]), staple:st.id, amt:st.amt || ""});
+  });
+  return {items, basis};
+}
+function renderList(){
+  const month = scope === "month", L = listFor(scopeKey());
+  $("#scopeW").setAttribute("aria-pressed", String(!month)); $("#scopeM").setAttribute("aria-pressed", String(month));
+  const {items, basis} = shopItems(scope);
+  const extras = L.extra.map((x, ix) => ({key:"x:" + ix, n:x.t, dept:"Annet", qty:new Map(), dishes:new Set(["engangsvare"]), extra:ix}));
+  const all = items.concat(extras).filter(i => !L.bought[i.key]);
+  const inCart = i => i.extra !== undefined ? L.extra[i.extra].done : !!L.checked[i.key];
+  const todo = all.filter(i => !inCart(i)), cart = all.filter(inCart);
+  const row = i => {
+    const done = inCart(i), q = [qtyText(i), i.amt].filter(Boolean).join(" · ");
+    const attr = i.extra !== undefined ? `data-extra="${i.extra}"` : `data-check="${esc(i.key)}"`;
+    return `<li class="${done ? "done" : ""}"><input type="checkbox" id="c-${esc(i.key)}" ${attr} ${done ? "checked" : ""}>
+      <label for="c-${esc(i.key)}"><span>${esc(i.n)}<span class="for">${esc([...i.dishes].join(", "))}</span></span><span class="amt">${esc(q)}</span></label>
+      ${i.extra !== undefined ? `<button class="rm" data-rmextra="${i.extra}" aria-label="Fjern ${esc(i.n)}">×</button>` : ""}</li>`;
   };
   let html = "";
-  const regular = items.filter(i => !BASIS.has(i.n)), basis = items.filter(i => BASIS.has(i.n));
-  if (scope === "week"){
-    const end = addDays(viewMonday, 6);
-    S.staples.filter(st => stapleDue(st, end) || L.checked["s:" + st.id]).forEach(st => addStaple(regular, st));
-  } else {
-    // måned: regn ut hvilke uker hver fast vare trengs; holdbare samles i «kjøp nå»
-    S.staples.forEach(st => {
-      let last = st.last, times = 0, weeksNeeded = [];
-      for (let wi = 0; wi < 4; wi++){
-        const end = addDays(viewMonday, 7 * wi + 6);
-        if ((wi === 0 && st.empty) || stapleDue({...st, empty:false}, end, last)){ times++; weeksNeeded.push(wi); last = ymd(addDays(viewMonday, 7 * wi)); }
-      }
-      if (!times && !L.checked["s:" + st.id]) return;
-      const it = addStaple(regular, st);
-      if (it.key.startsWith("s:")){
-        if (it.st === "holdbar"){ it.st = "holdbar"; if (times > 1) it.dishes.add(`${times} ganger i perioden`); }
-        else weeksNeeded.forEach(wi => it.weeks.set(wi, []));
-      }
-    });
-  }
-  if (!regular.length && !basis.length && !L.extra.length) html = `<div class="card">Ingen middager planlagt ${scope === "week" ? "denne uka" : "de fire ukene"} ennå. Gå til Uke og trykk «Foreslå uka».</div>`;
-  if (scope === "week"){
-    byDept(regular.map(i => [i, qtyAll(i)])).forEach(([d, arr]) => { html += `<div class="dept"><h3>${esc(d)}</h3><ul class="items">${arr.map(([i, q]) => row(i, q)).join("")}</ul></div>`; });
-  } else {
-    const now = regular.filter(i => i.st !== "fersk"), fresh = regular.filter(i => i.st === "fersk");
-    const qtyW = (i, wi) => qtyWeek(i, wi) || "";
-    html += `<div class="dept"><h3 style="color:var(--accent)">Kjøp nå: holdbart og til fryseren</h3></div>`;
-    byDept(now.map(i => [i, qtyAll(i) + (i.st === "frys" ? " · frys" : "")])).forEach(([d, arr]) => { html += `<div class="dept"><h3>${esc(d)}</h3><ul class="items">${arr.map(([i, q]) => row(i, q)).join("")}</ul></div>`; });
-    [0,1,2,3].forEach(wi => {
-      const wk = fresh.filter(i => i.weeks.has(wi)); if (!wk.length) return;
-      html += `<div class="dept"><h3 style="color:var(--accent)">Ferskvarer uke ${weekNo(addDays(viewMonday, 7 * wi))}</h3><ul class="items">${wk.map(i => row(i, qtyW(i, wi), "|u" + wi)).join("")}</ul></div>`;
-    });
-  }
-  if (L.extra.length) html += `<div class="dept"><h3>Egne varer</h3><ul class="items">${L.extra.map((x, ix) => `<li class="${x.done ? "done" : ""}"><input type="checkbox" id="e-${ix}" data-extra="${ix}" ${x.done ? "checked" : ""}><label for="e-${ix}"><span>${esc(x.t)}</span></label><button class="rm" data-rmextra="${ix}" aria-label="Fjern ${esc(x.t)}">×</button></li>`).join("")}</ul></div>`;
-  if (basis.length) html += `<details class="dept"><summary><b>Sjekk at dere har</b> (${basis.length})</summary><ul class="items" style="margin-top:6px">${basis.map(i => row(i, qtyAll(i))).join("")}</ul></details>`;
+  deptOrder().forEach(d => { const a = todo.filter(i => i.dept === d); if (a.length) html += `<div class="dept"><h3>${esc(d)}</h3><ul class="items">${a.map(row).join("")}</ul></div>`; });
+  if (!todo.length && !cart.length) html = `<div class="card">Ingenting på ${month ? "månedshandelen" : "ukeshandelen"} ennå. Planlegg middager under Uke, eller lås faste varer til denne handelen nederst.</div>`;
+  else if (!todo.length) html = `<div class="okbox">Alt er i kurven. Trykk «Ferdig handlet» når du er ferdig.</div>`;
+  if (cart.length) html += `<details class="dept" open><summary><b>I kurven</b> (${cart.length})</summary><ul class="items" style="margin-top:6px">${cart.map(row).join("")}</ul></details>`;
+  if (basis.length) html += `<details class="dept"><summary><b>Sjekk at dere har</b> (${basis.length})</summary><ul class="items" style="margin-top:6px">${basis.map(row).join("")}</ul></details>`;
   $("#listOut").innerHTML = html;
+  const n = all.length, k = cart.length;
+  $("#progress").innerHTML = n ? `${k} av ${n} i kurven · ${month ? `uke ${weekNo(viewMonday)}–${weekNo(addDays(viewMonday, 21))}` : `uke ${weekNo(viewMonday)}`}<div class="bar2"><i style="width:${Math.round(k / n * 100)}%"></i></div>` : "";
+  const count = w => { const L2 = S.lists[(w === "month" ? "m:" : "w:") + weekKey(viewMonday)] || {bought:{}}; return shopItems(w).items.filter(i => !(L2.bought || {})[i.key]).length + (L2.extra || []).length; };
+  $("#infoW").textContent = `${count("week")} varer · uke ${weekNo(viewMonday)}`;
+  $("#infoM").textContent = `${count("month")} varer · 4 uker`;
 }
 $("#listOut").addEventListener("change", e => {
-  const L = S.lists[scopeKey()];
+  const L = listFor(scopeKey());
   if (e.target.dataset.check){ const k = e.target.dataset.check; if (e.target.checked) L.checked[k] = 1; else delete L.checked[k]; }
-  if (e.target.dataset.staple){ // kryss på fast vare = kjøpt i dag; fjernes krysset, gjelder forrige dato igjen
-    const st = S.staples.find(x => x.id === e.target.dataset.staple);
-    if (st){ if (e.target.checked){ st.prevLast = st.last; st.prevEmpty = st.empty; st.last = ymd(new Date()); st.empty = false; } else { st.last = st.prevLast ?? st.last; st.empty = !!st.prevEmpty; } renderStaples(); }
-  }
-  if (e.target.dataset.extra){ L.extra[+e.target.dataset.extra].done = e.target.checked; }
-  e.target.closest("li").classList.toggle("done", e.target.checked);
-  save();
+  if (e.target.dataset.extra !== undefined){ L.extra[+e.target.dataset.extra].done = e.target.checked; }
+  save(); setTimeout(renderList, 150); // la haken synes et øyeblikk før varen synker ned
 });
-$("#listOut").addEventListener("click", e => { const b = e.target.closest("[data-rmextra]"); if (!b) return; S.lists[scopeKey()].extra.splice(+b.dataset.rmextra, 1); save(); renderList(); });
-function addExtra(){ const v = $("#addItem").value.trim(); if (!v) return; const L = S.lists[scopeKey()] || (S.lists[scopeKey()] = {checked:{}, extra:[]}); L.extra.push({t:v, done:false}); $("#addItem").value = ""; save(); renderList(); }
+$("#listOut").addEventListener("click", e => { const b = e.target.closest("[data-rmextra]"); if (!b) return; listFor(scopeKey()).extra.splice(+b.dataset.rmextra, 1); save(); renderList(); });
+function addExtra(){ const v = $("#addItem").value.trim(); if (!v) return; listFor(scopeKey()).extra.push({t:v, done:false}); $("#addItem").value = ""; save(); renderList(); }
 $("#addItemBtn").onclick = addExtra;
 $("#addItem").addEventListener("keydown", e => { if (e.key === "Enter") addExtra(); });
-$("#clearDone").onclick = () => { const L = S.lists[scopeKey()]; if (!L) return; L.extra = L.extra.filter(x => !x.done); save(); renderList(); };
+$("#doneShop").onclick = () => {
+  const L = listFor(scopeKey()), today = ymd(new Date());
+  let n = 0;
+  Object.keys(L.checked).forEach(k => {
+    L.bought[k] = today; n++;
+    const st = S.staples.find(x => "s:" + x.id === k || x.n === k);
+    if (st){ st.last = today; st.empty = false; }
+  });
+  // faste varer som var slått sammen med en middagsvare
+  shopItems(scope).items.forEach(i => { if (i.staple && L.bought[i.key] === today){ const st = S.staples.find(x => x.id === i.staple); if (st){ st.last = today; st.empty = false; } } });
+  n += L.extra.filter(x => x.done).length;
+  L.checked = {}; L.extra = L.extra.filter(x => !x.done);
+  save(); renderList(); renderStaples(); toast(n ? `Ferdig handlet: ${n} varer` : "Ingenting var krysset av");
+};
 $("#copyList").onclick = () => {
-  const L = S.lists[scopeKey()] || {checked:{}, extra:[]};
-  ensureStaples();
-  const items = buildList().filter(i => !BASIS.has(i.n) && !L.checked[i.key]);
-  const end = addDays(viewMonday, scope === "week" ? 6 : 27);
-  S.staples.filter(st => stapleDue(st, end) && !L.checked["s:" + st.id] && !items.some(i => i.n === st.n)).forEach(st => items.push({n:st.n, dept:st.dept, parts:[]}));
-  const lines = deptOrder().flatMap(d => { const a = items.filter(i => i.dept === d); return a.length ? [d.toUpperCase(), ...a.map(i => `- ${i.n} ${qtyAll(i)}`.trim()), ""] : []; });
+  const L = listFor(scopeKey()), {items} = shopItems(scope);
+  const left = items.filter(i => !L.bought[i.key] && !L.checked[i.key]);
+  const lines = deptOrder().flatMap(d => { const a = left.filter(i => i.dept === d); return a.length ? [d.toUpperCase(), ...a.map(i => `- ${i.n} ${[qtyText(i), i.amt].filter(Boolean).join(" · ")}`.trim()), ""] : []; });
   L.extra.filter(x => !x.done).forEach(x => lines.push(`- ${x.t}`));
-  copyText(`${$("#listTitle").textContent}\n\n${lines.join("\n")}`.trim());
+  copyText(`${scope === "month" ? "Månedshandel" : "Ukeshandel"} uke ${weekNo(viewMonday)}\n\n${lines.join("\n")}`.trim());
 };
 function markEmpty(){
   ensureStaples();
   const v = $("#emptyIn").value.trim(); if (!v) return;
   let st = S.staples.find(x => x.n.toLowerCase() === v.toLowerCase());
-  if (!st){ st = {id:"s" + Date.now().toString(36), n:v.toLowerCase(), dept:DEPT_OF[v.toLowerCase()] || "Annet", every:0, empty:true, last:null}; S.staples.push(st); }
+  if (!st){ st = {id:"s" + Date.now().toString(36), n:v.toLowerCase(), dept:DEPT_OF[v.toLowerCase()] || "Annet", plan:"behov", amt:"", empty:true, last:null}; S.staples.push(st); }
   st.empty = true; $("#emptyIn").value = "";
-  save(); renderList(); renderStaples(); toast(`${st.n} står på lista`);
+  save(); renderList(); renderStaples(); toast(`${st.n} står på begge listene til noen kjøper den`);
 }
 $("#emptyBtn").onclick = markEmpty;
 $("#emptyIn").addEventListener("keydown", e => { if (e.key === "Enter") markEmpty(); });
 function renderStaples(){
   ensureStaples();
   $("#stapleNames").innerHTML = S.staples.map(st => `<option value="${esc(st.n)}">`).join("");
-  $("#staplesCount").textContent = `(${S.staples.length})`;
+  const c = p => S.staples.filter(x => x.plan === p).length;
+  $("#staplesCount").textContent = `(${c("uke")} uke · ${c("måned")} måned · ${c("behov")} ved behov)`;
   $("#newStapleDept").innerHTML = deptOrder().map(d => `<option ${d === "Annet" ? "selected" : ""}>${esc(d)}</option>`).join("");
   const sorted = S.staples.slice().sort((a, b) => deptOrder().indexOf(a.dept) - deptOrder().indexOf(b.dept) || a.n.localeCompare(b.n, "nb"));
   $("#staplesList").innerHTML = sorted.map(st => `<div class="brow">
     <b>${esc(st.n)}${st.empty ? ` <span class="pill kos">tomt</span>` : ""}</b>
-    <div class="acts"><select data-every="${st.id}" aria-label="Hvor ofte: ${esc(st.n)}" style="min-height:38px;padding:4px 8px">${EVERY.map(([k, n]) => `<option value="${k}" ${+st.every === k ? "selected" : ""}>${n}</option>`).join("")}</select><button data-rmstaple="${st.id}" aria-label="Fjern ${esc(st.n)}" title="Fjern">×</button></div>
-    <div class="meta">${esc(st.dept)} · ${st.last ? "sist kjøpt " + dm(new Date(st.last + "T12:00")) : "ikke kjøpt ennå"}</div>
+    <div class="acts"><select data-plan="${st.id}" aria-label="Handel for ${esc(st.n)}" style="min-height:38px;padding:4px 8px">${PLANS.map(([k, n]) => `<option value="${k}" ${st.plan === k ? "selected" : ""}>${n}</option>`).join("")}</select><button data-rmstaple="${st.id}" aria-label="Fjern ${esc(st.n)}" title="Fjern">×</button></div>
+    <div class="meta">${esc(st.dept)} · <input type="text" data-amt="${st.id}" value="${esc(st.amt || "")}" placeholder="mengde" aria-label="Mengde for ${esc(st.n)}" style="width:7em;min-height:30px;padding:2px 8px"> · ${st.last ? "sist kjøpt " + dm(new Date(st.last + "T12:00")) : "ikke kjøpt ennå"}</div>
   </div>`).join("");
 }
-$("#staplesList").addEventListener("change", e => { const id = e.target.dataset.every; if (!id) return; const st = S.staples.find(x => x.id === id); st.every = +e.target.value; save(); renderList(); renderStaples(); });
+$("#staplesList").addEventListener("change", e => {
+  const id = e.target.dataset.plan || e.target.dataset.amt; if (!id) return;
+  const st = S.staples.find(x => x.id === id);
+  if (e.target.dataset.plan) st.plan = e.target.value; else st.amt = e.target.value.trim();
+  save(); renderList(); renderStaples();
+});
 $("#staplesList").addEventListener("click", e => { const b = e.target.closest("[data-rmstaple]"); if (!b) return; S.staples = S.staples.filter(x => x.id !== b.dataset.rmstaple); save(); renderList(); renderStaples(); });
 $("#addStaple").onclick = () => {
   ensureStaples();
   const n = $("#newStaple").value.trim().toLowerCase(); if (!n) return;
   if (S.staples.some(x => x.n === n)){ toast("Finnes fra før"); return; }
-  S.staples.push({id:"s" + Date.now().toString(36), n, dept:$("#newStapleDept").value, every:+$("#newStapleEvery").value, empty:false, last:null});
-  $("#newStaple").value = ""; save(); renderList(); renderStaples(); toast("Lagt til");
+  S.staples.push({id:"s" + Date.now().toString(36), n, dept:$("#newStapleDept").value, plan:$("#newStaplePlan").value, amt:$("#newStapleAmt").value.trim(), empty:false, last:null});
+  $("#newStaple").value = ""; $("#newStapleAmt").value = ""; save(); renderList(); renderStaples(); toast("Lagt til");
 };
-$("#scopeW").onclick = () => { scope = "week"; $("#scopeW").setAttribute("aria-pressed","true"); $("#scopeM").setAttribute("aria-pressed","false"); renderList(); };
-$("#scopeM").onclick = () => { scope = "month"; $("#scopeM").setAttribute("aria-pressed","true"); $("#scopeW").setAttribute("aria-pressed","false"); renderList(); };
+$("#scopeW").onclick = () => { scope = "week"; $("#scopeW").setAttribute("aria-pressed","true"); $("#scopeM").setAttribute("aria-pressed","false"); local.set("scope", scope); renderList(); };
+$("#scopeM").onclick = () => { scope = "month"; $("#scopeM").setAttribute("aria-pressed","true"); $("#scopeW").setAttribute("aria-pressed","false"); local.set("scope", scope); renderList(); };
 
 /* ---------- middagsbanken ---------- */
 let bankCat = "alle";
