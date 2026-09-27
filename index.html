@@ -1066,12 +1066,15 @@ function renderTrip(t, note = ""){
     <div class="card"><label class="lbl" style="margin-top:0">Kampanjer som gjelder høstferien</label>${t.kampanjer && t.kampanjer.length ? `<ul style="margin:0;padding-left:18px">${t.kampanjer.map(x => `<li>${linkify(x)}</li>`).join("")}</ul>` : "Ingen nå."}</div>
     ${t.andreDatoer ? `<div class="card"><label class="lbl" style="margin-top:0">Andre datoer</label>${nl(t.andreDatoer)}</div>` : ""}
     ${dateGrid(t)}
-    ${logg.length ? `<details class="card"><summary><b>Siste søk</b> (${logg.length})</summary>${logg.map(r => `<div class="logrow"><b>${esc(r.dato)} · ${esc(r.fra)} · ${esc(r["ut–hjem"])}</b><span>${esc([r.selskap, k(r)].filter(x => x && x !== "–").join(" · ") || "")}${r.merknad ? ` <em>${esc(r.merknad)}</em>` : ""}</span></div>`).join("")}</details>` : ""}
+    ${logg.length ? `<details class="card"><summary><b>Siste søk</b> (${logg.length})</summary>${logg.map(r => `<div class="logrow"><b>${esc(r.dato)} · ${esc(r.fra)} · ${esc(r["ut–hjem"])}${/ingen fly/i.test(r.merknad || "") ? "" : ` · <a href="${esc(flightLink(r))}" target="_blank" rel="noopener">åpne ↗</a>`}</b><span>${esc([r.selskap, k(r)].filter(x => x && x !== "–").join(" · ") || "")}${r.merknad ? ` <em>${esc(r.merknad)}</em>` : ""}</span></div>`).join("")}</details>` : ""}
     ${t.gebyrer && t.gebyrer.length ? `<details class="card"><summary><b>Gebyrer for sete og bagasje</b></summary><div class="tbl"><table><thead><tr><th>Selskap</th><th>Anslag t/r for fem</th><th>Hentet</th></tr></thead><tbody>${t.gebyrer.map(g => { const u = (String(g.Kilde || "").match(/https?:\/\/\S+/) || [""])[0]; return `<tr><td>${u ? `<a href="${esc(u)}" target="_blank" rel="noopener">${esc(g.Selskap)}</a>` : esc(g.Selskap)}</td><td>${esc(g["Sum (anslag)"])}</td><td>${esc(g.Hentet)}</td></tr>`; }).join("")}</tbody></table></div></details>` : ""}
     ${t.andreKampanjer && t.andreKampanjer.length ? `<details class="card"><summary><b>Andre kampanjer</b> (dekker ikke høstferien)</summary><ul style="margin:6px 0 0;padding-left:18px">${t.andreKampanjer.map(x => `<li>${linkify(x)}</li>`).join("")}</ul></details>` : ""}
     ${note}`;
 }
 /* Lenke til selskapets eget søk for en kombinasjon (datoene kommer fra de private dataene) */
+function searchLink(fra, u, h, yy){
+  return flightLink({fra, selskap: fra === "TRF" ? "Ryanair" : "", "ut–hjem": `${u}–${h}.${yy}`});
+}
 function flightLink(r){
   const m = String(r["ut–hjem"] || "").match(/(\d\d)\.(\d\d)\s*[–-]\s*(\d\d)\.(\d\d)\.(\d\d)/); if (!m) return "";
   const y = "20" + m[5], ut = `${y}-${m[2]}-${m[1]}`, hj = `${y}-${m[4]}-${m[3]}`, fra = r.fra || "TRF";
@@ -1085,23 +1088,26 @@ function dateGrid(t){
   const num = d => { const m = String(d).match(/(\d\d)\.(\d\d)\.(\d\d)/); return m ? +(m[3] + m[2] + m[1]) : 0; };
   const rows = (t.prislogg || []).map(r => { const m = String(r["ut–hjem"] || "").match(/(\d\d\.\d\d)\s*[–-]\s*(\d\d\.\d\d)/); return {...r, ut:m && m[1], hjem:m && m[2], n:num(r.dato)}; }).sort((a, b) => b.n - a.n);
   const kr = r => { const v = String(r["totalt m/ sete+bagasje"] || ""); return /\d/.test(v) ? v.replace(/\s*kr\b/i, "") : ""; };
+  const yy = (String((rows.find(r => /\.\d\d\s*$/.test(r["ut–hjem"] || "")) || {})["ut–hjem"] || "").match(/\.(\d\d)\s*$/) || [0, "27"])[1];
   const grid = fra => {
     const cell = (u, h) => {
       const hit = rows.find(r => r.fra === fra && r.ut === u && r.hjem === h);
       if (hit && kr(hit)) return {txt:kr(hit), price:+kr(hit).replace(/\D/g, ""), href:flightLink(hit), sel:hit.selskap};
+      if (hit && /ingen fly/i.test(hit.merknad || "")) return {txt:"ingen fly"};
+      // alle andre ruter kan åpnes hos selskapet, så dere kan sjekke tider selv
+      const look = {href:searchLink(fra, u, h, yy), sel: fra === "TRF" ? "Ryanair" : "momondo"};
       const newest = rows.find(r => r.fra === fra);
       const opened = rows.some(r => r.fra === fra && kr(r) && (!hit || r.n > hit.n)); // åpnet etter dette søket
-      if (hit && /ikke åpnet/i.test(hit.merknad || "")) return {txt: opened ? "ikke søkt" : "ikke åpnet"};
-      if (hit && /ingen fly/i.test(hit.merknad || "")) return {txt:"ingen fly"};
-      if (hit) return {txt:(hit.merknad || "–").slice(0, 18)};
-      if (newest && /ikke åpnet/i.test(newest.merknad || "")) return {txt:"ikke åpnet"};
-      return {txt:"ikke søkt"};
+      if (hit && /ikke åpnet/i.test(hit.merknad || "")) return {txt: opened ? "ikke søkt" : "ikke åpnet", ...look};
+      if (hit) return {txt:(hit.merknad || "–").slice(0, 18), ...look};
+      if (newest && /ikke åpnet/i.test(newest.merknad || "")) return {txt:"ikke åpnet", ...look};
+      return {txt:"ikke søkt", ...look};
     };
     const cells = D.ut.map(([ud, u]) => D.hjem.map(([hd, h]) => cell(u, h)));
     const best = Math.min(...cells.flat().filter(c => c.price).map(c => c.price));
     return `<div class="tbl"><table class="grid"><thead><tr><th>Ut ↓ hjem →</th>${D.hjem.map(([d, h]) => `<th>${d} ${h}</th>`).join("")}</tr></thead><tbody>${D.ut.map(([d, u], i) => `<tr><th>${d} ${u}</th>${cells[i].map(c => `<td class="${c.price ? (c.price === best ? "best" : "") : "muted"}">${c.href ? `<a href="${esc(c.href)}" target="_blank" rel="noopener" title="Åpne hos ${esc(c.sel || "selskapet")}">${esc(c.txt)}</a>` : esc(c.txt)}</td>`).join("")}</tr>`).join("")}</tbody></table></div>`;
   };
-  return `<div class="card"><label class="lbl" style="margin-top:0">Alle datoer · Torp</label>${grid("TRF")}<label class="lbl">Alle datoer · Gardermoen</label>${grid("OSL")}<p class="hint" style="margin:6px 0 0">Totalpris i kr for fem. Grønn = billigst for flyplassen. Trykk på en pris for å åpne den hos flyselskapet med to voksne og tre barn fylt inn. Oppdateres etter hver full runde (søndager).</p></div>`;
+  return `<div class="card"><label class="lbl" style="margin-top:0">Alle datoer · Torp</label>${grid("TRF")}<label class="lbl">Alle datoer · Gardermoen</label>${grid("OSL")}<p class="hint" style="margin:6px 0 0">Totalpris i kr for fem. Grønn = billigst for flyplassen. Trykk på en rute for å åpne de datoene hos flyselskapet (Torp: Ryanair, Gardermoen: momondo) med to voksne og tre barn fylt inn, også der flyvakta ikke har pris ennå. Oppdateres etter hver full runde (søndager).</p></div>`;
 }
 async function loadTrip(force = false){
   if (tripLoaded && !force) return;
