@@ -363,7 +363,36 @@ function ensureStaples(){
     st.amt = st.amt || (st.every === 14 ? "2 stk" : "");
     changed = true;
   });
+  // v4 (27.09.26): tilpasset familiens egne vaner – baker brød og knekkebrød selv, havregrøt til frokost i hverdagen
+  if ((S.staplesV || 0) < 4){ applyV4(); S.staplesV = 4; changed = true; }
   if (changed) setTimeout(save);
+}
+function applyV4(){
+  const find = n => S.staples.find(x => x.n === n);
+  const set = (n, o) => { const st = find(n); if (st) Object.assign(st, o); return st; };
+  const add = (n, dept, plan, amt = "") => { if (!find(n)) S.staples.push({id:"s4_" + n.replace(/\W+/g, "_"), n, dept, plan, amt, empty:false, last:null}); };
+  S.staples = S.staples.filter(x => x.n !== "knekkebrød");
+  if (!set("kjøpebrød (til de minste)", {n:"brød til barna", plan:"uke"})) add("brød til barna", "Brød", "uke");
+  add("rugsprø", "Brød", "måned", "2 pk");
+  set("polarbrød", {plan:"behov", amt:""});
+  set("havregryn", {plan:"uke", amt:"2 pk"});
+  set("rosiner", {plan:"måned", amt:"2 pk"});
+  add("kanel", "Krydder og sauser", "måned");
+  set("sukker", {plan:"måned"});
+  set("frokostblanding", {plan:"behov", amt:""});
+  ["gulost","salami eller ostepølse","kokt skinke","spekeskinke","syltetøy","melk"].forEach(n => set(n, {plan:"uke", amt:""}));
+  ["leverpostei","brunost","makrell i tomat","peanøttsmør","kaviar","fenalår","porchetta","vann 5 l","saft","te"].forEach(n => set(n, {plan:"behov", amt:""}));
+  if (!set("juice", {n:"eplejuice", plan:"uke"})) add("eplejuice", "Drikke", "uke");
+  add("Farris Bris", "Drikke", "behov"); add("cola", "Drikke", "behov");
+  if (!set("kaffe", {n:"filterkaffe (Moccamaster)", plan:"måned", amt:"2 pk"})) add("filterkaffe (Moccamaster)", "Drikke", "måned", "2 pk");
+  add("kaffebønner (espresso)", "Drikke", "måned");
+  // rask middag for dager med dårlig tid
+  S.custom ||= [];
+  if (!S.custom.some(c => /fjordland/i.test(c.n))){
+    S.custom.push({id:"e_fjordland", n:"Risengrynsgrøt fra Fjordland", k:"vegetar", t:5, kos:false, helg:false, lines:["3 pk risengrynsgrøt (Fjordland)"]});
+    S.never ||= []; if (!S.never.includes("e_fjordland")) S.never.push("e_fjordland"); // velges selv på travle dager, foreslås ikke
+  }
+  DISHES = allDishes();
 }
 function ensureStaplesInner(){
   if (Array.isArray(S.staples)){
@@ -392,10 +421,10 @@ function stapleDue(st, until, last = st.last){
 const everyName = e => (EVERY.find(x => x[0] === +e) || [0, "Ved behov"])[1].toLowerCase();
 const CATALOG = {
  "Frukt og grønt": "løk rødløk hvitløk gulrot potet brokkoli paprika agurk tomat cherrytomat isbergsalat purre sitron blomkål squash kålrot hodekål søtpotet pære sjampinjong avokado",
- "Brød": "tortilla hamburgerbrød lomper pitabrød brød flatbrød focaccia nanbrød",
+ "Brød": "tortilla hamburgerbrød lomper pitabrød brød flatbrød focaccia nanbrød rugsprø",
  "Kjøtt og kylling": "kjøttdeig karbonadedeig kyllingfilet kyllinglår hel_kylling svinekoteletter grillpølser wienerpølser kjøttpølser bacon kjøttboller suppekjøtt fårikålkjøtt lapskauskjøtt svinefilet skinke spekeskinke gyroskjøtt",
  "Fisk": "laks torsk sei fiskekaker fiskeburgere fylt_torsk",
- "Meieri og egg": "melk rømme matfløte smør egg revet_ost ostskiver mozzarella parmesan yoghurt_naturell crème_fraîche blåmuggost tzatziki tortellini",
+ "Meieri og egg": "risengrynsgrøt_(fjordland) melk rømme matfløte smør egg revet_ost ostskiver mozzarella parmesan yoghurt_naturell crème_fraîche blåmuggost tzatziki tortellini",
  "Frysedisken": "erter spinat wokgrønnsaker fiskepinner pytt_i_panne falafel kebabkjøtt vårruller",
  "Tørrvarer og hermetikk": "pasta spaghetti makaroni ris nudler lasagneplater hakkede_tomater tomatpuré kokosmelk kikerter kidneybønner røde_linser mais hvetemel gjær grøtris sukker fiskeboller rødbeter risottoris nøttemiks valnøtter honning tortillachips",
  "Krydder og sauser": "tacokrydder fiskebuljong kyllingbuljong grønnsaksbuljong soyasaus teriyakisaus pesto brun_saus karri garam_masala paprikapulver pepper_hel kanel tyttebær syltetøy kebabdressing rød_karripasta kormasaus dolmiosaus sweet_chili-saus hoisinsaus salsa",
@@ -984,10 +1013,11 @@ function showTab(name){
   if (name === "liste"){ renderList(); renderStaples(); } if (name === "bank") renderBank(); if (name === "oppsett") renderSettings();
 }
 document.querySelectorAll("nav.tabs button").forEach(b => b.addEventListener("click", () => showTab(b.dataset.pane)));
-function renderAll(){ renderWeek(); if (!$("#pane-liste").hidden){ renderList(); renderStaples(); } if (!$("#pane-bank").hidden) renderBank(); if (!$("#pane-oppsett").hidden) renderSettings(); }
+function renderAll(){ ensureStaples(); renderWeek(); if (!$("#pane-liste").hidden){ renderList(); renderStaples(); } if (!$("#pane-bank").hidden) renderBank(); if (!$("#pane-oppsett").hidden) renderSettings(); }
 
 const fromLink = connFromHash();
 if (conn().api) setSync("Kobler til …");
+ensureStaples();
 renderWeek();
 showTab(fromLink ? "uke" : local.get("tab", "uke"));
 let syncStarted = false;
