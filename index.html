@@ -191,6 +191,7 @@ footer{margin-top:28px;font-size:.78rem;color:var(--muted);border-top:1px solid 
     <div class="chips">
       <button class="chip" id="optQuick" aria-pressed="true">Maks 30 min på hverdager</button>
       <button class="chip" id="optReuse" aria-pressed="true">Gjenbruk ferskvarer i uka</button>
+      <button class="chip" id="optMine" aria-pressed="true">Mest våre egne retter og favoritter</button>
     </div>
   </div>
   <div class="card">
@@ -276,25 +277,25 @@ const SPECIAL = [
  {id:"rester", n:"Restemiddag", k:"annet", t:10, kos:false, helg:false, ing:[], special:true},
  {id:"ute", n:"Spiser ute / takeaway", k:"annet", t:0, kos:true, helg:false, ing:[], special:true},
 ];
-const FAMILIES = ["taco","burger","suppe","pasta","spaghetti","wok","grateng","lasagne","pita","pølse"];
+const FAMILIES = ["taco","burger","suppe","pasta","spaghetti","wok","grateng","lasagne","pita","pølse","pizza","fiskepinne","fiskekake","grøt","risotto"];
 const CATS = [["fisk","Fisk"],["kylling","Kylling"],["kjøtt","Kjøtt"],["vegetar","Vegetar"],["annet","Annet"]];
 
 /* ---------- varekatalog: avdeling og hvordan varen kan kjøpes ved storhandel ---------- */
 const DEPTS = ["Frukt og grønt","Brød","Kjøtt og kylling","Fisk","Meieri og egg","Frysedisken","Tørrvarer og hermetikk","Krydder og sauser","Annet"];
 const CATALOG = {
- "Frukt og grønt": "løk rødløk hvitløk gulrot potet brokkoli paprika agurk tomat cherrytomat isbergsalat purre sitron blomkål squash kålrot hodekål søtpotet",
- "Brød": "tortilla hamburgerbrød lomper pitabrød brød flatbrød",
- "Kjøtt og kylling": "kjøttdeig karbonadedeig kyllingfilet kyllinglår hel_kylling svinekoteletter grillpølser wienerpølser bacon kjøttboller suppekjøtt fårikålkjøtt lapskauskjøtt svinefilet skinke",
- "Fisk": "laks torsk sei fiskekaker fiskeburgere",
- "Meieri og egg": "melk rømme matfløte smør egg revet_ost ostskiver mozzarella parmesan yoghurt_naturell",
- "Frysedisken": "erter spinat wokgrønnsaker fiskepinner pytt_i_panne falafel kebabkjøtt",
- "Tørrvarer og hermetikk": "pasta spaghetti makaroni ris nudler lasagneplater hakkede_tomater tomatpuré kokosmelk kikerter kidneybønner røde_linser mais hvetemel gjær grøtris sukker fiskeboller rødbeter",
- "Krydder og sauser": "tacokrydder fiskebuljong kyllingbuljong grønnsaksbuljong soyasaus teriyakisaus pesto brun_saus karri garam_masala paprikapulver pepper_hel kanel tyttebær syltetøy kebabdressing",
+ "Frukt og grønt": "løk rødløk hvitløk gulrot potet brokkoli paprika agurk tomat cherrytomat isbergsalat purre sitron blomkål squash kålrot hodekål søtpotet pære sjampinjong avokado",
+ "Brød": "tortilla hamburgerbrød lomper pitabrød brød flatbrød focaccia nanbrød",
+ "Kjøtt og kylling": "kjøttdeig karbonadedeig kyllingfilet kyllinglår hel_kylling svinekoteletter grillpølser wienerpølser kjøttpølser bacon kjøttboller suppekjøtt fårikålkjøtt lapskauskjøtt svinefilet skinke spekeskinke gyroskjøtt",
+ "Fisk": "laks torsk sei fiskekaker fiskeburgere fylt_torsk",
+ "Meieri og egg": "melk rømme matfløte smør egg revet_ost ostskiver mozzarella parmesan yoghurt_naturell crème_fraîche blåmuggost tzatziki tortellini",
+ "Frysedisken": "erter spinat wokgrønnsaker fiskepinner pytt_i_panne falafel kebabkjøtt vårruller",
+ "Tørrvarer og hermetikk": "pasta spaghetti makaroni ris nudler lasagneplater hakkede_tomater tomatpuré kokosmelk kikerter kidneybønner røde_linser mais hvetemel gjær grøtris sukker fiskeboller rødbeter risottoris nøttemiks valnøtter honning tortillachips",
+ "Krydder og sauser": "tacokrydder fiskebuljong kyllingbuljong grønnsaksbuljong soyasaus teriyakisaus pesto brun_saus karri garam_masala paprikapulver pepper_hel kanel tyttebær syltetøy kebabdressing rød_karripasta kormasaus dolmiosaus sweet_chili-saus hoisinsaus salsa",
 };
 const DEPT_OF = {}; Object.entries(CATALOG).forEach(([d, s]) => s.split(" ").forEach(n => DEPT_OF[n.replace(/_/g, " ")] = d));
 // Holdbart: kan kjøpes for hele måneden (tørrvarer, frys, lagergrønt). Kjøtt og fisk kan fryses.
 const LAGER = new Set("løk rødløk hvitløk gulrot potet kålrot hodekål søtpotet".split(" "));
-const BASIS = new Set(["smør","hvetemel","sukker","kanel","paprikapulver","pepper hel","karri","garam masala","soyasaus","fiskebuljong","kyllingbuljong","grønnsaksbuljong"]);
+const BASIS = new Set(["smør","hvetemel","sukker","honning","kanel","paprikapulver","pepper hel","karri","garam masala","soyasaus","fiskebuljong","kyllingbuljong","grønnsaksbuljong"]);
 function storage(name){
   const d = DEPT_OF[name] || "Annet";
   if (d === "Tørrvarer og hermetikk" || d === "Krydder og sauser" || d === "Frysedisken" || LAGER.has(name)) return "holdbar";
@@ -335,7 +336,7 @@ function fmtQty(q, u){
 }
 
 /* ---------- tilstand (felles for begge) ---------- */
-const DEFAULT = { v:0, settings:{portions:5, rules:["fisk","valgfritt","vegetar","fisk","kos","helg","helg"], quick:true, reuse:true},
+const DEFAULT = { v:0, settings:{portions:5, rules:["fisk","valgfritt","vegetar","fisk","kos","helg","helg"], quick:true, reuse:true, mine:true},
   weeks:{}, custom:[], fav:[], never:[], lists:{} };
 let S = Object.assign(clone(DEFAULT), local.get("state", {}));
 S.settings = Object.assign(clone(DEFAULT.settings), S.settings || {});
@@ -374,7 +375,10 @@ function candidates(rule, dayIdx, mon, usedNow){
 }
 function score(d, rule, chosen){
   let s = Math.random() * 3;
-  if (S.fav.includes(d.id)) s += 2;
+  // egne retter og favoritter er det dere faktisk lager; startbanken er inspirasjon
+  const mine = S.settings.mine !== false;
+  if (S.fav.includes(d.id)) s += mine ? 2 : 2;
+  if (d.own) s += mine ? 2.5 : 1;
   const lu = lastUsed(d.id); if (!lu) s += 0.8; else s += Math.min(2, (Date.now() - lu) / (60 * 864e5));
   if (rule === "helg" && d.helg) s += 2.5;
   if (S.settings.reuse){
@@ -614,9 +618,10 @@ function guessCat(n){
   return "kjøtt";
 }
 function parseImport(text){
-  const out = []; let cur = null;
+  const out = []; let cur = null; out.favs = [];
   text.split("\n").map(l => l.trim()).forEach(line => {
     if (!line || /^(#|\/\/)/.test(line)) return;
+    if (/^★/.test(line)){ out.favs.push(line.replace(/^★\s*/, "").toLowerCase()); cur = null; return; }
     const ingLine = /^[\d.,]+\s/.test(line) || /^[-•*]\s*[\d.,]/.test(line);
     if (cur && ingLine){ cur.lines.push(line.replace(/^[-•*]\s*/, "")); return; }
     const [n, k, t, flags] = line.replace(/^[-•*]\s*/, "").split("|").map(x => (x || "").trim());
@@ -644,7 +649,9 @@ Fredagspizza | kjøtt | 60 | kos helg</pre>
     const list = parseImport(box.querySelector("#impText").value);
     const have = new Set(DISHES.map(d => d.n.toLowerCase()));
     const fresh = list.filter(d => !have.has(d.n.toLowerCase()));
-    box.querySelector("#impInfo").textContent = list.length ? `${fresh.length} nye retter${list.length - fresh.length ? `, ${list.length - fresh.length} finnes fra før og hoppes over` : ""}. ${fresh.filter(d => !d.lines.length).length} uten ingredienser.` : "";
+    fresh.favIds = list.favs.map(n => DISHES.find(d => d.n.toLowerCase() === n) || DISHES.find(d => d.n.toLowerCase().startsWith(n))).filter(Boolean).map(d => d.id);
+    fresh.favMiss = list.favs.length - fresh.favIds.length;
+    box.querySelector("#impInfo").textContent = (list.length || list.favs.length) ? `${fresh.length} nye retter${list.length - fresh.length ? `, ${list.length - fresh.length} finnes fra før og hoppes over` : ""}. ${fresh.favIds.length} merkes som favoritt${fresh.favMiss ? ` (${fresh.favMiss} ikke funnet)` : ""}.` : "";
     return fresh;
   };
   box.addEventListener("input", info);
@@ -652,9 +659,11 @@ Fredagspizza | kjøtt | 60 | kos helg</pre>
     const b = e.target.closest("button");
     if (e.target === box || b?.dataset.close !== undefined){ box.remove(); return; }
     if (b?.dataset.save !== undefined){
-      const fresh = info(); if (!fresh.length){ box.remove(); return; }
-      fresh.forEach((d, i) => S.custom.push({id:"e" + Date.now().toString(36) + i, ...d}));
-      DISHES = allDishes(); save(); bankCat = "egne"; renderBank(); box.remove(); toast(`${fresh.length} retter lagt til`);
+      const fresh = info(); if (!fresh.length && !fresh.favIds.length){ box.remove(); return; }
+      fresh.forEach((d, i) => S.custom.push({id:"e" + Date.now().toString(36) + i, n:d.n, k:d.k, t:d.t, kos:d.kos, helg:d.helg, lines:d.lines}));
+      fresh.favIds.forEach(id => { if (!S.fav.includes(id)) S.fav.push(id); });
+      DISHES = allDishes(); save(); bankCat = fresh.length ? "egne" : "fav"; renderBank(); box.remove();
+      toast(`${fresh.length} retter lagt til, ${fresh.favIds.length} favoritter`);
     }
   });
   document.body.appendChild(box);
@@ -695,6 +704,7 @@ function renderSettings(){
   $("#rules").innerHTML = DAYS.map((d, i) => `<label for="r${i}">${d}</label><select id="r${i}" data-rule="${i}">${RULES.map(([k, n]) => `<option value="${k}" ${S.settings.rules[i] === k ? "selected" : ""}>${n}</option>`).join("")}</select>`).join("");
   $("#optQuick").setAttribute("aria-pressed", String(!!S.settings.quick));
   $("#optReuse").setAttribute("aria-pressed", String(!!S.settings.reuse));
+  $("#optMine").setAttribute("aria-pressed", String(S.settings.mine !== false));
   const c = conn();
   $("#apiUrl").value = c.api || ""; $("#apiKey").value = c.k || "";
   $("#shareState").innerHTML = c.api ? `<div class="okbox">Koblet til felles lagring. Endringer dere gjør, vises hos den andre innen et halvt minutt.</div>` : `<div class="warnbox">Ikke koblet. Planen lagres bare på denne enheten til dere kobler til regnearket.</div>`;
@@ -704,6 +714,7 @@ $("#portions").addEventListener("change", e => { S.settings.portions = Math.max(
 $("#rules").addEventListener("change", e => { if (e.target.dataset.rule){ S.settings.rules[+e.target.dataset.rule] = e.target.value; save(); } });
 $("#optQuick").onclick = () => { S.settings.quick = !S.settings.quick; save(); renderSettings(); };
 $("#optReuse").onclick = () => { S.settings.reuse = !S.settings.reuse; save(); renderSettings(); };
+$("#optMine").onclick = () => { S.settings.mine = S.settings.mine === false; save(); renderSettings(); };
 
 /* ---------- felles lagring via Apps Script ---------- */
 const conn = () => local.get("conn", {});
