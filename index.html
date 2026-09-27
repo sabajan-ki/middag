@@ -365,6 +365,11 @@ function ensureStaples(){
   });
   // v4 (27.09.26): tilpasset familiens egne vaner – baker brød og knekkebrød selv, havregrøt til frokost i hverdagen
   if ((S.staplesV || 0) < 4){ applyV4(); S.staplesV = 4; changed = true; }
+  if (S.staplesV < 5){ // fenalår og porchetta ut, «spekemat» som samlepost
+    S.staples = S.staples.filter(x => x.n !== "fenalår" && x.n !== "porchetta");
+    if (!S.staples.some(x => x.n === "spekemat")) S.staples.push({id:"s5_spekemat", n:"spekemat", dept:"Frokost og pålegg", plan:"behov", amt:"", empty:false, last:null});
+    S.staplesV = 5; changed = true;
+  }
   if (changed) setTimeout(save);
 }
 function applyV4(){
