@@ -324,22 +324,34 @@ const STAPLES_V2 = [
  ["porchetta","Frokost og pålegg",7],["baconterninger","Kjøtt og kylling",14],["fløtepudding","Fisk",14],
  ["matfløte","Meieri og egg",14],["smågodt","Snacks og godteri",7],["snacks","Snacks og godteri",7],
 ];
+/* Fra storhandel-kvittering Kiwi 20.05.26 */
+const STAPLES_V3 = [
+ ["sjokolademelk","Meieri og egg",7],["havredrikk barista","Meieri og egg",7],["gresk yoghurt","Meieri og egg",7],["margarin","Meieri og egg",14],
+ ["polarbrød","Brød",7],["druer","Frukt og grønt",7],["agurk til matpakka","Frukt og grønt",7],
+ ["spekeskinke","Frokost og pålegg",14],["fenalår","Frokost og pålegg",14],["salami eller ostepølse","Frokost og pålegg",7],
+ ["kjeks (Bixit, Safari)","Snacks og godteri",7],["vann 5 l","Drikke",14],["rosiner","Tørrvarer og hermetikk",30],
+ ["grovbakstmel","Tørrvarer og hermetikk",30],["frossen mango","Frysedisken",14],["våtservietter","Husholdning og hygiene",30],
+];
 const STAPLES_RENAME = {"brød":"kjøpebrød (til de minste)","skinkepålegg":"kokt skinke"};
 const EVERY = [[7,"Hver uke"],[14,"Annenhver uke"],[30,"Hver måned"],[0,"Ved behov"]];
 const HOLDBAR_DEPTS = new Set(["Tørrvarer og hermetikk","Krydder og sauser","Husholdning og hygiene","Frysedisken","Drikke"]);
 function ensureStaples(){
   if (Array.isArray(S.staples)){
-    if ((S.staplesV || 1) < 2){ // én gang: legg til varer fra kvitteringen og gi to varer bedre navn
-      S.staples.forEach(st => { if (STAPLES_RENAME[st.n]) st.n = STAPLES_RENAME[st.n]; });
-      STAPLES_V2.forEach(([n, dept, every], i) => { if (!S.staples.some(x => x.n === n)) S.staples.push({id:"s2_" + i, n, dept, every, empty:false, last:null}); });
-      S.staplesV = 2; setTimeout(save);
+    const v = S.staplesV || 1;
+    if (v < 3){ // én gang per versjon: legg til varer fra kvitteringene og gi noen varer bedre navn
+      if (v < 2){
+        S.staples.forEach(st => { if (STAPLES_RENAME[st.n]) st.n = STAPLES_RENAME[st.n]; });
+        STAPLES_V2.forEach(([n, dept, every], i) => { if (!S.staples.some(x => x.n === n)) S.staples.push({id:"s2_" + i, n, dept, every, empty:false, last:null}); });
+      }
+      STAPLES_V3.forEach(([n, dept, every], i) => { if (!S.staples.some(x => x.n === n)) S.staples.push({id:"s3_" + i, n, dept, every, empty:false, last:null}); });
+      S.staplesV = 3; setTimeout(save);
     }
     return;
   }
-  S.staplesV = 2;
+  S.staplesV = 3;
   // første gang: ukevarer er på tide nå, resten spres utover så første handletur ikke blir enorm
   const today = new Date();
-  S.staples = STAPLES_DEFAULT.concat(STAPLES_V2).map(([n0, dept, every], i) => ({id:"s" + i, n:STAPLES_RENAME[n0] || n0, dept, every, empty:false,
+  S.staples = STAPLES_DEFAULT.concat(STAPLES_V2, STAPLES_V3).map(([n0, dept, every], i) => ({id:"s" + i, n:STAPLES_RENAME[n0] || n0, dept, every, empty:false,
     last: every === 7 ? null : every === 14 ? ymd(addDays(today, -7)) : every === 30 ? ymd(addDays(today, -15 - (i % 3) * 5)) : null}));
 }
 function stapleDue(st, until, last = st.last){
