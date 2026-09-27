@@ -172,7 +172,7 @@ footer{margin-top:28px;font-size:.78rem;color:var(--muted);border-top:1px solid 
 
 <!-- MIDDAGER -->
 <section class="pane" id="pane-bank" hidden>
-  <div class="bar"><h2>Middager</h2><button class="btn main" id="newDish">Ny rett</button></div>
+  <div class="bar"><h2>Middager</h2><div style="display:flex;gap:6px"><button class="btn" id="importDishes">Importer flere</button><button class="btn main" id="newDish">Ny rett</button></div></div>
   <input type="search" id="bankSearch" placeholder="Søk i middagene">
   <div class="chips" id="bankFilter" style="margin-top:8px"></div>
   <div class="bank" id="bankList"></div>
@@ -329,7 +329,7 @@ function fmtQty(q, u){
   if (q == null) return "";
   if (u === "g"){ if (q >= 1000) return `${(Math.round(q / 100) / 10).toString().replace(".", ",")} kg`; return `${Math.round(q / 50) * 50 || Math.round(q)} g`; }
   if (u === "dl"){ if (q >= 10) return `${(Math.round(q / 5) / 2).toString().replace(".", ",")} l`; return `${(Math.round(q * 2) / 2).toString().replace(".", ",")} dl`; }
-  if (["pk","boks","beger","glass","pose","flaske"].includes(u)) return `${Math.ceil(q - 0.15)} ${u}`;
+  if (["pk","boks","beger","glass","pose","flaske"].includes(u)) return `${Math.max(1, Math.ceil(q - 0.3))} ${u}`; // 1,25 boks = 1 boks
   if (u === "stk") return q < 0.9 ? `${(Math.round(q * 2) / 2 || 0.5).toString().replace(".", ",")} stk` : `${Math.ceil(q - 0.15)} stk`;
   return `${Math.round(q * 2) / 2} ${u}`.replace(".", ",");
 }
@@ -602,6 +602,64 @@ $("#bankList").addEventListener("click", e => {
   if (b.dataset.edit){ openDishForm(b.dataset.edit); }
 });
 $("#newDish").onclick = () => openDishForm(null);
+
+/* Importer mange retter på én gang.
+   Format: en linje med «Navn | type | minutter | kos/helg» starter en rett, ingredienslinjer følger.
+   En linje med bare et navn blir også en rett (uten ingredienser). */
+function guessCat(n){
+  const t = n.toLowerCase();
+  if (/(laks|torsk|sei|fisk|reke|makrell|sild|tunfisk|hyse|scampi)/.test(t)) return "fisk";
+  if (/kylling|kalkun/.test(t)) return "kylling";
+  if (/(vegetar|bønne|linse|kikert|grønnsak|pannekake|grøt|omelett|tomatsuppe)/.test(t)) return "vegetar";
+  return "kjøtt";
+}
+function parseImport(text){
+  const out = []; let cur = null;
+  text.split("\n").map(l => l.trim()).forEach(line => {
+    if (!line || /^(#|\/\/)/.test(line)) return;
+    const ingLine = /^[\d.,]+\s/.test(line) || /^[-•*]\s*[\d.,]/.test(line);
+    if (cur && ingLine){ cur.lines.push(line.replace(/^[-•*]\s*/, "")); return; }
+    const [n, k, t, flags] = line.replace(/^[-•*]\s*/, "").split("|").map(x => (x || "").trim());
+    if (!n) return;
+    const cat = CATS.some(c => c[0] === (k || "").toLowerCase()) ? k.toLowerCase() : guessCat(n);
+    const f = (flags || "").toLowerCase();
+    cur = {n, k:cat, t:+t || 30, kos:/kos/.test(f), helg:/helg/.test(f), lines:[]};
+    out.push(cur);
+  });
+  return out;
+}
+$("#importDishes").onclick = () => {
+  const box = document.createElement("div"); box.className = "dialog";
+  box.innerHTML = `<div class="sheet" role="dialog" aria-label="Importer retter"><h3>Importer flere retter</h3>
+    <p class="hint" style="margin-top:0">Én rett per linje. Vil dere ha med type, tid og ingredienser, skriv slik:</p>
+    <pre style="background:var(--bg);border:1px solid var(--line);border-radius:10px;padding:8px 10px;font-size:.82rem;overflow-x:auto;margin:6px 0">Kyllinggryte à la mamma | kylling | 35
+600 g kyllingfilet
+1 boks kokosmelk
+4 dl ris
+Fredagspizza | kjøtt | 60 | kos helg</pre>
+    <textarea id="impText" placeholder="Lim inn rettene her"></textarea>
+    <p class="hint" id="impInfo"></p>
+    <div style="display:flex;gap:6px;flex-wrap:wrap;margin-top:6px"><button class="btn main" data-save>Importer</button><button class="btn" data-close>Avbryt</button></div></div>`;
+  const info = () => {
+    const list = parseImport(box.querySelector("#impText").value);
+    const have = new Set(DISHES.map(d => d.n.toLowerCase()));
+    const fresh = list.filter(d => !have.has(d.n.toLowerCase()));
+    box.querySelector("#impInfo").textContent = list.length ? `${fresh.length} nye retter${list.length - fresh.length ? `, ${list.length - fresh.length} finnes fra før og hoppes over` : ""}. ${fresh.filter(d => !d.lines.length).length} uten ingredienser.` : "";
+    return fresh;
+  };
+  box.addEventListener("input", info);
+  box.addEventListener("click", e => {
+    const b = e.target.closest("button");
+    if (e.target === box || b?.dataset.close !== undefined){ box.remove(); return; }
+    if (b?.dataset.save !== undefined){
+      const fresh = info(); if (!fresh.length){ box.remove(); return; }
+      fresh.forEach((d, i) => S.custom.push({id:"e" + Date.now().toString(36) + i, ...d}));
+      DISHES = allDishes(); save(); bankCat = "egne"; renderBank(); box.remove(); toast(`${fresh.length} retter lagt til`);
+    }
+  });
+  document.body.appendChild(box);
+  box.querySelector("#impText").focus();
+};
 function openDishForm(id){
   const c = id ? S.custom.find(x => x.id === id) : {n:"", k:"kjøtt", t:30, kos:false, helg:false, lines:[]};
   const box = document.createElement("div"); box.className = "dialog";
